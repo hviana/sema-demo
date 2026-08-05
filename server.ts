@@ -186,10 +186,78 @@ function banner() {
 `);
 }
 
+/** The address to hand a browser. A server bound to a wildcard is reachable on
+ *  every interface, but `http://0.0.0.0/` is not a thing a browser can open. */
+const browseUrl = (() => {
+  if (HOST === "0.0.0.0" || HOST === "") return `http://127.0.0.1:${PORT}/`;
+  if (HOST === "::" || HOST === "[::]") return `http://[::1]:${PORT}/`;
+  return url;
+})();
+
+/** Hand the URL to the desktop's browser.
+ *
+ *  Double-clicking a binary on Linux attaches no terminal, so the banner above
+ *  is invisible there and the app looks like it did nothing. Windows allocates
+ *  a console for this binary and macOS opens Terminal, but none of them should
+ *  need to: opening the page is the thing the user actually wanted.
+ *
+ *  Strictly best-effort. Every failure path — no launcher installed, no
+ *  permission to spawn, a non-zero exit, a desktop-less server box — leaves the
+ *  banner as the fallback, which is exactly how this worked before. */
+async function openBrowser(target: string): Promise<void> {
+  const [cmd, args]: [string, string[]] = Deno.build.os === "windows"
+    // The empty string is `start`'s title argument. Without it, a quoted URL
+    // would be taken AS the title and no browser would open.
+    ? ["cmd", ["/c", "start", "", target]]
+    : Deno.build.os === "darwin"
+    ? ["open", [target]]
+    : ["xdg-open", [target]];
+
+  const status = await new Deno.Command(cmd, {
+    args,
+    stdin: "null",
+    stdout: "null",
+    stderr: "null",
+  }).spawn().status;
+
+  if (!status.success) throw new Error(`${cmd} exited with ${status.code}`);
+}
+
+function launchBrowser(): void {
+  try {
+    // Set by the `dev` task: --watch restarts the process on every save, and
+    // each restart would otherwise open another tab.
+    if (Deno.env.get("SEMA_NO_OPEN")) return;
+  } catch {
+    return; // no --allow-env: stay quiet and leave the banner to do the work
+  }
+  openBrowser(browseUrl).catch((err) => {
+    // Only worth saying when someone is there to read it.
+    if (!tty) return;
+    const why = err instanceof Deno.errors.NotFound
+      ? "no launcher found"
+      : err instanceof Error
+      ? err.message
+      : String(err);
+    console.log(
+      `  ${label("Browser")}${dim(`not opened (${why}) — use the link above`)}`,
+    );
+  });
+}
+
 // `onListen` replaces Deno's own "Listening on …" line, so the address is
 // announced exactly once, by us.
 const server = Deno.serve(
-  { port: PORT, hostname: HOST, onListen: banner },
+  {
+    port: PORT,
+    hostname: HOST,
+    onListen: () => {
+      banner();
+      // After the banner, so a launcher that writes to stderr cannot land in
+      // the middle of it — and never before the port is actually accepting.
+      launchBrowser();
+    },
+  },
   handleRequest,
 );
 

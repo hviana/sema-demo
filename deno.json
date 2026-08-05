@@ -5,7 +5,7 @@
   "lock": false,
   "tasks": {
     "start": "deno run -A server.ts",
-    "dev": "deno run -A --watch server.ts",
+    "dev": "SEMA_NO_OPEN=1 deno run -A --watch server.ts",
     "update": "deno cache --reload=npm:@hviana/sema server.ts",
 
     "compile": "deno compile -A --reload=npm:@hviana/sema --output dist/sema-demo server.ts",

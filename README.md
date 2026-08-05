@@ -16,8 +16,8 @@ deno task dev        # same, with --watch
 deno task update     # re-resolve @hviana/sema to the newest published release
 ```
 
-On start it prints where to go and gets out of the way — all progress is shown
-in the browser, live:
+On start it **opens your browser at that address** and prints where to go anyway
+— all progress is shown in the browser, live:
 
 ```
   ┌──────────────────────────────────────────────────────────┐
@@ -33,6 +33,17 @@ in the browser, live:
 
   Trained memory  downloading — follow the progress at http://127.0.0.1:8000/
 ```
+
+Opening the browser is strictly best-effort, via `xdg-open` / `open` / `start`.
+If it fails for any reason — no launcher installed, a headless server, no
+permission to spawn a process — the failure is swallowed and the banner above is
+the fallback, exactly as before. Set `SEMA_NO_OPEN=1` to turn it off; the `dev`
+task already does, so `--watch` restarts do not pile up browser tabs.
+
+This matters most on Linux, where double-clicking a binary attaches no terminal
+at all: the banner is invisible there, so without this the app looks like it did
+nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
+binary in Terminal, so on those two the banner is visible either way.
 
 The dependency is deliberately **unpinned** (`npm:@hviana/sema`, no version) and
 the lockfile is disabled, so a fresh resolution always takes the latest release.
@@ -106,6 +117,7 @@ running from source.
 | `PORT` / `HOST`      | listen address (default `127.0.0.1:8000`)           |
 | `SEMA_DATA_DIR`      | where the trained memory lives                      |
 | `SEMA_SKIP_DOWNLOAD` | trust whatever is on disk; never contact the bucket |
+| `SEMA_NO_OPEN`       | do not open a browser on start                      |
 
 `SEMA_SKIP_DOWNLOAD` is for developing against a small store you trained
 yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
