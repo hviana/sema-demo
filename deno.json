@@ -1,0 +1,19 @@
+{
+  "imports": {
+    "@hviana/sema": "npm:@hviana/sema"
+  },
+  "lock": false,
+  "tasks": {
+    "start": "deno run -A server.ts",
+    "dev": "deno run -A --watch server.ts",
+    "update": "deno cache --reload=npm:@hviana/sema server.ts",
+
+    "compile": "deno compile -A --reload=npm:@hviana/sema --output dist/sema-demo server.ts",
+    "compile:linux-x64": "deno compile -A --reload=npm:@hviana/sema --target x86_64-unknown-linux-gnu --output dist/sema-demo-linux-x64 server.ts",
+    "compile:linux-arm64": "deno compile -A --reload=npm:@hviana/sema --target aarch64-unknown-linux-gnu --output dist/sema-demo-linux-arm64 server.ts",
+    "compile:macos-x64": "deno compile -A --reload=npm:@hviana/sema --target x86_64-apple-darwin --output dist/sema-demo-macos-x64 server.ts",
+    "compile:macos-arm64": "deno compile -A --reload=npm:@hviana/sema --target aarch64-apple-darwin --output dist/sema-demo-macos-arm64 server.ts",
+    "compile:windows-x64": "deno compile -A --reload=npm:@hviana/sema --target x86_64-pc-windows-msvc --output dist/sema-demo-windows-x64.exe server.ts",
+    "compile:all": "rm -rf dist && deno task compile:linux-x64 && deno task compile:linux-arm64 && deno task compile:macos-x64 && deno task compile:macos-arm64 && deno task compile:windows-x64"
+  }
+}
