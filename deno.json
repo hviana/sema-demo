@@ -1,7 +1,8 @@
 {
   "imports": {
-    "@hviana/sema": "npm:@hviana/sema"
+    "@hviana/sema": "npm:@hviana/sema@0.5.8"
   },
+  "minimumDependencyAge": 0,
   "lock": false,
   "tasks": {
     "start": "deno run -A server.ts",
