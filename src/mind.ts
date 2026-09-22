@@ -80,6 +80,13 @@ const MECHANISMS: Record<string, { stage: string; label: string }> = {
     stage: "reason",
     label: "Following what it was taught comes next",
   },
+  // The JOIN.  Without an entry here the step is DROPPED from the story
+  // entirely (the builder below skips unknown mechanisms), and the join is
+  // exactly the step the headline credits in the richest answers.
+  "derive-through": {
+    stage: "reason",
+    label: "Deriving through a fact it already held",
+  },
   bridge: { stage: "reason", label: "Covering the next part of the sentence" },
   substitutionBridge: {
     stage: "reason",
@@ -206,20 +213,41 @@ const WHY_EMPTY: Record<string, string> = {
 };
 
 /** `skipMechanism` names which mechanism it declined in the note's first word,
- *  so the plain reading has to come from the note rather than the key. */
-const SKIPPED: Record<string, string> = {
-  cast: "A learnt pattern could not apply to a sentence shaped like this.",
-  extraction:
-    "Lifting the answer out by example could not beat what it already had.",
-  reference: "There was nothing here whose reference needed working out.",
-  analogy: "An analogy could not apply to a sentence shaped like this.",
-  counterfactual: "There was no pattern here to try a variation of.",
+ *  so BOTH the plain reading and the label come from that word.  Two declines in
+ *  one list otherwise share the title "Ruled out before trying" with nothing to
+ *  tell them apart, and `alu` had no reading of its own at all. */
+const SKIPPED: Record<string, { what: string; plain: string }> = {
+  cast: {
+    what: "applying a pattern it learnt",
+    plain: "A learnt pattern could not apply to a sentence shaped like this.",
+  },
+  extraction: {
+    what: "copying a worked example",
+    plain:
+      "Lifting the answer out by example could not beat what it already had.",
+  },
+  reference: {
+    what: "working out what a word points to",
+    plain: "There was nothing here whose reference needed working out.",
+  },
+  analogy: {
+    what: "looking for something similar",
+    plain: "An analogy could not apply to a sentence shaped like this.",
+  },
+  counterfactual: {
+    what: "checking a variation",
+    plain: "There was no pattern here to try a variation of.",
+  },
+  alu: {
+    what: "doing the arithmetic",
+    plain: "There was nothing here to calculate.",
+  },
 };
 
 function whyEmpty(mechanism: string, note: string): string | undefined {
   if (mechanism !== "skipMechanism") return WHY_EMPTY[mechanism];
   const which = /^(\w+)/.exec(note)?.[1]?.toLowerCase() ?? "";
-  return SKIPPED[which] ??
+  return SKIPPED[which]?.plain ??
     "It checked whether this approach could apply here, and it could not.";
 }
 
@@ -278,6 +306,8 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
   // names the action, the sentence says why that action mattered here.
   "follow-edge": () =>
     "This is the move that carries the answer: it had been given a note saying this text is followed by that text.",
+  "derive-through": () =>
+    "It took the subject the first note was about and looked that subject up again, so the answer comes from a second note rather than from the first one alone.",
   bridge: () =>
     "Part of your sentence was still unaccounted for, and this covered the next stretch of it.",
   substitutionBridge: () =>
@@ -522,8 +552,17 @@ function explain(
     const note = step.note ?? "";
     if (mechanism === "narrowDecision" && note) closeCall = note;
 
+    // A decline names the mechanism it declined in the note's first word, so the
+    // label can say WHICH approach was ruled out — otherwise two declines in one
+    // list both read "Ruled out before trying" and nothing tells them apart.
+    const declined = mechanism === "skipMechanism"
+      ? (/^(\w+)/.exec(note)?.[1]?.toLowerCase() ?? "")
+      : "";
+
     const entry: ExplainedStep = {
-      label: known.label,
+      label: SKIPPED[declined]
+        ? known.label + ": " + SKIPPED[declined].what
+        : known.label,
       note,
       mechanism,
       inputs: itemsOf(step.inputs),
