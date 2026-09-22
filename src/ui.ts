@@ -29,6 +29,9 @@ export const HTML = `<!doctype html>
     --accent-soft: #f4e8dc;
     --accent-ink: #925629;
     --user: #262320;
+    /* What YOU said: a warm step of the paper, deep enough to read as a
+       message (the accent tint alone disappears into the background). */
+    --bubble-me: color-mix(in srgb, var(--accent) 20%, var(--surface));
     --ok: #3f7d52;
     --ok-ink: #376e48;
     --ok-soft: #e8efea;
@@ -36,6 +39,11 @@ export const HTML = `<!doctype html>
     --danger: #b3453a;
     --r: 14px;
     --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.05);
+    /* Elevation: one soft step for content, one deeper for whatever floats.
+       A card is MATERIAL — it sits on the paper by value and shadow, never by
+       an outline (an outline is a wireframe, not a surface). */
+    --elev-1: 0 1px 2px rgba(0, 0, 0, .03), 0 6px 16px rgba(0, 0, 0, .045);
+    --elev-2: 0 2px 6px rgba(0, 0, 0, .06), 0 18px 44px rgba(0, 0, 0, .12);
     /* Motion: one duration per INTENT, not one per rule.  Each value is the one
        the design already used for that intent (fast feedback, a chevron turn, a
        pulse), so naming them changes no timing a reader can perceive — it just
@@ -85,7 +93,7 @@ export const HTML = `<!doctype html>
       --surface: #1b1a16;
       --surface-2: #232119;
       --line: #33302a;
-      --line-soft: #262420;
+      --line-soft: #302c26;
       --ink: #ece8e0;
       --ink-soft: #a29a8f;
       --ink-faint: #918a7d;
@@ -94,13 +102,18 @@ export const HTML = `<!doctype html>
       --accent-soft: #2c2218;
       --accent-ink: #dc9c62;
       --user: #ece8e0;
+      --bubble-me: color-mix(in srgb, var(--accent) 24%, var(--surface));
       --ok: #74b587;
       --ok-ink: #74b587;
       --ok-soft: #1d2a22;
       --warn: #d3aa52;
       --danger: #e0796c;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+      --elev-1: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 16px rgba(0, 0, 0, .4);
+      --elev-2: 0 2px 6px rgba(0, 0, 0, .4), 0 18px 44px rgba(0, 0, 0, .5);
     }
+    /* On a dark surface the same trace needs more of the accent to be seen. */
+    .graph path.area { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
   }
   * { box-sizing: border-box; }
   /* Author display rules beat the UA's [hidden] rule, so the attribute silently
@@ -125,10 +138,13 @@ export const HTML = `<!doctype html>
     flex: none; z-index: 5;
   }
   .bar { display: flex; align-items: center; gap: var(--s3); height: 56px; }
-  .mark { font-weight: 700; letter-spacing: .22em; font-size: var(--f-sm); text-transform: uppercase; }
+  .mark { font-weight: 650; letter-spacing: .26em; font-size: var(--f-sm); text-transform: uppercase; }
   .mark span { color: var(--accent); }
+  /* The subtitle is a line of prose, so it takes the editorial voice — the one
+     place the header admits it is part of the same page as the hero. */
   .tag {
-    font-size: var(--f-sm); color: var(--ink-soft);
+    font-family: var(--font-display); font-style: italic; font-size: 13px;
+    color: var(--ink-soft);
     border-left: 1px solid var(--line); padding-left: var(--s3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
@@ -137,25 +153,27 @@ export const HTML = `<!doctype html>
     display: inline-flex; align-items: center; gap: var(--s2);
     font-size: var(--f-xs); color: var(--ink-soft); white-space: nowrap;
   }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+  /* The state mark is a lamp, not a bullet: a soft halo says "this is live". */
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 8%, transparent); }
   .dot.busy { background: var(--warn); animation: blink var(--t-blink) ease-in-out infinite; }
   .dot.bad { background: var(--danger); }
   @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
-  /* Mobile first: the reset is an icon and a full finger target.  Where there is
-     room for the word, the word comes back. */
+  /* Mobile first: the reset is an icon and a full finger target, and it is a
+     GHOST — a header does not need a second box.  Where there is room for the
+     word, the word comes back. */
   .icon-btn {
-    flex: none; width: var(--tap); height: var(--tap); display: none;
-    align-items: center; justify-content: center; gap: var(--s2); padding: 0;
-    border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface);
+    flex: none; min-width: var(--tap); min-height: var(--tap); display: none;
+    align-items: center; justify-content: center; gap: var(--s2); padding: 0 var(--s3);
+    border: 0; border-radius: var(--r-sm); background: none;
     color: var(--ink-soft); cursor: pointer; transition: var(--t-fast); margin-left: var(--s2);
     font: inherit; font-size: var(--f-sm);
   }
   .icon-btn .lab { display: none; white-space: nowrap; }
   @media (min-width: 700px) {
-    .icon-btn { width: auto; height: 36px; padding: 0 var(--s3); }
+    .icon-btn { min-width: 0; min-height: 36px; }
     .icon-btn .lab { display: inline; }
   }
-  .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .icon-btn:hover { color: var(--accent-ink); background: var(--surface-2); }
   .icon-btn.on { display: inline-flex; }
   @media (max-width: 620px) { .tag { display: none; } }
 
@@ -163,19 +181,33 @@ export const HTML = `<!doctype html>
   #boot { flex: 1; display: grid; place-items: center; padding: var(--s5) var(--s4); overflow-y: auto; }
   .card {
     width: min(560px, 100%); background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r); box-shadow: var(--shadow); padding: var(--s5) var(--s5) var(--s4);
+    border-radius: var(--r); box-shadow: var(--elev-1); padding: var(--s5) var(--s5) var(--s4);
   }
   .card h1 { margin: 0 0 var(--s1); font-family: var(--font-display); font-size: var(--f-hero); font-weight: 600; letter-spacing: -.01em; }
   .card .sub { margin: 0; color: var(--ink-soft); font-size: var(--f-md); line-height: var(--lh-snug); }
 
-  /* headline figure + live throughput graph */
-  .figure { display: flex; align-items: flex-end; gap: var(--s4); margin: var(--s5) 0 var(--s3); }
-  .pct { font-size: var(--f-display); font-weight: 660; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  /* The figure is an INSTRUMENT: the number and its unit on one line, and the
+     rate-over-time chart on its own full-width row underneath — never squeezed
+     into a third column where the unit has to wrap. */
+  .figure {
+    display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: end;
+    gap: var(--s2) var(--s3); margin: var(--s5) 0 var(--s3);
+  }
+  .pct {
+    grid-column: 1; font-family: var(--font-display);
+    font-size: var(--f-display); font-weight: 600; letter-spacing: -.02em; line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
   .pct small { font-size: var(--f-base); font-weight: 550; color: var(--ink-faint); margin-left: 2px; }
-  .of { flex: 1; font-size: var(--f-sm); color: var(--ink-soft); padding-bottom: 3px; }
-  .graph { width: 128px; height: 34px; flex: none; overflow: hidden; opacity: 0; transition: opacity .4s; }
+  .of { grid-column: 2; font-size: var(--f-sm); color: var(--ink-soft); padding-bottom: 4px; }
+  .graph {
+    grid-column: 1 / -1; width: 100%; height: 34px; flex: none;
+    overflow: hidden; opacity: 0; transition: opacity .4s;
+  }
   .graph.on { opacity: 1; }
-  .graph path.area { fill: color-mix(in srgb, var(--accent) 14%, transparent); }
+  /* A ghost trace, not a filled block: the METER below carries the progress, so
+     the chart only has to say "the rate is alive". */
+  .graph path.area { fill: color-mix(in srgb, var(--accent) 10%, transparent); }
   .graph path.line { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 
   .meter { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; position: relative; }
@@ -198,26 +230,31 @@ export const HTML = `<!doctype html>
   .stats { display: flex; justify-content: space-between; gap: var(--s3); font-size: var(--f-sm); color: var(--ink-soft); margin-top: var(--s2); }
   .stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-  .files { margin-top: var(--s5); display: grid; gap: var(--s3); }
-  .file .row { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s1); font-size: var(--f-sm); color: var(--ink-soft); }
-  .file code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); font-size: var(--f-xs); }
+  /* The file list is a LIST, not a stack of widgets: hairline between entries,
+     the state mark large enough to read at a glance, the name in the machine
+     voice and the numbers in tabular figures. */
+  .files { margin-top: var(--s5); display: grid; }
+  .file { padding: var(--s3) 0; }
+  .file + .file { border-top: 1px solid var(--line-soft); }
+  .file .row { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); font-size: var(--f-sm); color: var(--ink-soft); }
+  .file code { font-family: var(--font-machine); color: var(--ink); font-size: var(--f-xs); }
   .file .val { margin-left: auto; font-variant-numeric: tabular-nums; }
   .file .meter { height: 4px; }
   .file .tick { color: var(--ok); }
   .state {
-    width: 13px; height: 13px; flex: none; border-radius: 50%; display: grid; place-items: center;
+    width: 15px; height: 15px; flex: none; border-radius: 50%; display: grid; place-items: center;
     border: 1.5px solid var(--line);
   }
   .state.done { border-color: var(--ok); background: var(--ok); }
   .state.done::after { content: ""; width: 4px; height: 7px; border: solid #fff; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) translate(-1px,-1px); }
   .state.active { border-color: var(--accent); border-top-color: transparent; animation: spin .7s linear infinite; }
-  .why-note { margin-top: var(--s1); font-size: var(--f-xs); color: var(--accent); }
+  .why-note { margin-top: var(--s2); font-size: var(--f-xs); color: var(--accent); }
 
-  .hint { margin: var(--s5) 0 0; font-size: var(--f-sm); line-height: var(--lh-snug); color: var(--ink-faint); }
+  .hint { margin: var(--s5) 0 0; font-size: var(--f-xs); line-height: var(--lh-snug); color: var(--ink-faint); }
   .err {
     margin-top: var(--s4); padding: var(--s3) var(--s4); border-radius: var(--r-sm); font-size: var(--f-md);
     background: color-mix(in srgb, var(--danger) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+    border: 0;
     line-height: var(--lh-snug);
   }
   .retry {
@@ -239,9 +276,13 @@ export const HTML = `<!doctype html>
     margin: 0 0 var(--s3); font-family: var(--font-display); font-size: var(--f-hero);
     font-weight: 600; letter-spacing: -.005em; line-height: var(--lh-tight);
   }
+  /* The promise takes the reading measure; the aside is a FOOTNOTE — smaller
+     type runs wider, exactly as a footnote does on a page. */
+  .welcome > p { max-width: 52ch; }
+  .caveat { max-width: 68ch; }
   .welcome > p {
-    margin: 0 0 var(--s5); color: var(--ink-soft); font-size: var(--f-base);
-    line-height: 1.6; max-width: 54ch;
+    margin: 0 0 var(--s4); color: var(--ink-soft); font-size: var(--f-base);
+    line-height: 1.6;
   }
   /* The corpus caveat is an ASIDE: it is not a card.  No box, no fill — just a
      quieter size and the one warning-coloured mark, so the only filled surfaces
@@ -253,10 +294,14 @@ export const HTML = `<!doctype html>
   }
   .caveat b { color: var(--ink); font-weight: 600; }
   .caveat svg { flex: none; margin-top: 1px; color: var(--warn); width: 15px; height: 15px; }
+  /* A section eyebrow, drawn the editorial way: the label, then a hairline that
+     ties it to the width of what it introduces. */
   .try {
-    margin: var(--s5) 0 var(--s2); font-size: var(--f-xs); font-weight: 600;
+    display: flex; align-items: center; gap: var(--s3);
+    margin: var(--s6) 0 var(--s3); font-size: var(--f-xs); font-weight: 600;
     letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint);
   }
+  .try::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   /* The wider column carries a step more type — declared HERE, after the base
      rules, because a media query adds no specificity and would otherwise lose. */
   @media (min-width: 768px) {
@@ -280,13 +325,14 @@ export const HTML = `<!doctype html>
   #exgo {
     flex: none; min-height: var(--tap); border: 0; border-radius: var(--r-sm);
     background: var(--accent); color: var(--on-accent);
-    font: inherit; font-size: var(--f-md); font-weight: 600; padding: 0 var(--s4); cursor: pointer;
+    font: inherit; font-size: var(--f-md); font-weight: 600; padding: 0 var(--s3); cursor: pointer;
   }
   #exgo:disabled { opacity: .4; cursor: not-allowed; }
   .ex-meta {
-    margin: var(--s3) 2px 0; font-size: var(--f-xs); color: var(--ink-faint);
+    margin: var(--s3) 2px 0; font-size: var(--f-xs); color: var(--ink-soft);
     min-height: 16px; display: flex; align-items: center; gap: var(--s2);
   }
+  .ex-meta .dim { color: var(--ink-faint); }
   .spin {
     width: 11px; height: 11px; flex: none; border-radius: 50%;
     border: 1.6px solid var(--line); border-top-color: var(--accent);
@@ -295,14 +341,12 @@ export const HTML = `<!doctype html>
   @keyframes spin { to { transform: rotate(360deg); } }
   .ex-list { margin-top: var(--s3); display: grid; gap: var(--s2); }
   .pair {
-    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--surface); border: 0; border-radius: var(--r); box-shadow: var(--elev-1);
     padding: var(--s4); font-size: var(--f-md); line-height: var(--lh-snug);
     cursor: pointer; transition: var(--t-fast); text-align: left;
     font-family: inherit; color: var(--ink); width: 100%; display: block;
   }
-  .pair:hover { border-color: var(--accent); background: var(--accent-soft); }
-  /* A finger has no hover: the press itself has to answer. */
-  .pair:active { border-color: var(--accent); background: var(--accent-soft); }
+  .pair:hover, .pair:active { background: var(--accent-soft); }
   /* Mobile first: the label sits ABOVE its text, so the text keeps the full
      width instead of wrapping into a narrow second column.  From 560px up there
      is room for the two columns this card was originally drawn for. */
@@ -317,6 +361,8 @@ export const HTML = `<!doctype html>
   .pair .val {
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden; min-width: 0; overflow-wrap: anywhere;
+    /* A line of text has a comfortable length even inside a wide card. */
+    max-width: 74ch;
   }
   @media (min-width: 768px) { .pair .val { -webkit-line-clamp: 3; } }
   .pair .to { color: var(--accent); }
@@ -325,9 +371,11 @@ export const HTML = `<!doctype html>
     font-size: var(--f-xs); color: var(--ink-faint); margin-top: var(--s3);
     display: flex; align-items: center; gap: var(--s3);
   }
+  /* The footer belongs to the TEXT column, not to the card's edge. */
+  @media (min-width: 560px) { .pair .sc { margin-left: calc(78px + var(--s3)); } }
   .pair .ask {
     margin-left: auto; display: inline-flex; align-items: center; gap: var(--s1);
-    font-size: var(--f-sm); font-weight: 600; color: var(--accent); white-space: nowrap;
+    font-size: var(--f-md); font-weight: 600; color: var(--accent); white-space: nowrap;
   }
   @media (min-width: 560px) {
     .pair .side { display: flex; gap: var(--s3); align-items: baseline; }
@@ -338,20 +386,27 @@ export const HTML = `<!doctype html>
   /* A search that finds nothing is still a screen the reader lands on: it gets
      the same shape as a card, an icon that says which memory came up empty, and
      one line of what to do next — never a bare sentence floating in space. */
+  /* An empty state is a TYPOGRAPHIC moment, not an illustration: a small
+     centred block with the title in the display voice, no icon to apologise
+     with. */
   .ex-empty {
-    display: flex; gap: var(--s3); align-items: flex-start;
-    padding: var(--s4); border: 1px dashed var(--line); border-radius: var(--r);
-    background: var(--surface-2); color: var(--ink-soft);
+    display: block; text-align: center; padding: var(--s5) var(--s4);
+    border: 0; border-radius: var(--r);
+    background: var(--surface); box-shadow: var(--elev-1); color: var(--ink-soft);
   }
-  .ex-empty svg { flex: none; color: var(--ink-faint); margin-top: 1px; }
-  .ex-empty-title { margin: 0 0 var(--s1); font-size: var(--f-md); font-weight: 620; color: var(--ink); }
-  .ex-empty-msg { margin: 0; font-size: var(--f-sm); line-height: var(--lh-body); }
+  .ex-empty-title {
+    margin: 0 0 var(--s2); font-family: var(--font-display); font-size: var(--f-lg);
+    font-weight: 600; color: var(--ink);
+  }
+  .ex-empty-msg { margin: 0 auto; max-width: 46ch; font-size: var(--f-sm); line-height: var(--lh-body); }
   .ex-more {
-    margin-top: var(--s3); background: none; border: 1px solid var(--line); color: var(--ink-soft);
-    font: inherit; font-size: var(--f-sm); padding: 0 var(--s4); min-height: var(--tap);
-    border-radius: 99px; cursor: pointer; transition: var(--t-fast);
+    margin-top: var(--s3); display: inline-flex; align-items: center; min-height: var(--tap);
+    background: none; border: 0; padding: 0; cursor: pointer; transition: var(--t-fast);
+    font: inherit; font-size: var(--f-md); font-weight: 600; color: var(--accent);
   }
-  .ex-more:hover { border-color: var(--accent); color: var(--accent); }
+  .ex-more:hover {
+    color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px;
+  }
   .ex-more:disabled { opacity: .45; cursor: not-allowed; }
 
   .msg { margin: var(--s5) 0; display: flex; flex-direction: column; }
@@ -359,12 +414,24 @@ export const HTML = `<!doctype html>
   /* Shrink-wrap to the text: a stretched bubble around three loading dots
      reads as a broken empty box. */
   .bubble { align-self: flex-start; max-width: 90%; padding: var(--s3) var(--s4); border-radius: var(--r); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .me .bubble { align-self: flex-end; background: var(--user); color: var(--bg); border-bottom-right-radius: 4px; }
-  .ai .bubble { background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; box-shadow: var(--shadow); }
-  .ai .bubble.silent { background: none; border-style: dashed; box-shadow: none; color: var(--ink-soft); font-size: var(--f-md); }
+  /* Both sides of the conversation are material too: what Sema says sits on a
+     raised surface, what you said sits on a warm tint of the paper. */
+  .me .bubble {
+    align-self: flex-end; background: var(--bubble-me); color: var(--ink);
+    border: 0; border-bottom-right-radius: 6px;
+  }
+  .ai .bubble {
+    background: var(--surface); border: 0; box-shadow: var(--elev-1);
+    border-bottom-left-radius: 6px;
+  }
+  /* Silence and failure are still MESSAGES: quiet tint, no dashed outline. */
+  .ai .bubble.silent {
+    background: var(--surface-2); box-shadow: none; border: 0;
+    color: var(--ink-soft); font-size: var(--f-md);
+  }
   .ai .bubble.err-bubble {
-    border-color: color-mix(in srgb, var(--danger) 45%, transparent);
-    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 9%, var(--surface));
+    border: 0; color: var(--danger);
   }
   .again {
     display: block; margin-top: var(--s2); background: none; border: 0; padding: 0; cursor: pointer;
@@ -377,32 +444,43 @@ export const HTML = `<!doctype html>
   .dots i:nth-child(2) { animation-delay: .15s } .dots i:nth-child(3) { animation-delay: .3s }
   @keyframes bob { 0%,60%,100% { opacity: .25; transform: translateY(0) } 30% { opacity: 1; transform: translateY(-3px) } }
 
+  /* The explanation is the demo's point, so its button is a material pill —
+     the last outlined box in the conversation is gone. */
   .why {
     align-self: flex-start; margin-top: var(--s3); display: inline-flex; align-items: center;
     gap: var(--s2); min-height: var(--tap); padding: 0 var(--s4);
-    background: none; border: 1px solid var(--line); color: var(--ink-soft);
+    background: var(--surface); border: 0; box-shadow: var(--elev-1); color: var(--ink-soft);
     font: inherit; font-size: var(--f-md); border-radius: 99px; cursor: pointer; transition: var(--t-fast);
   }
-  .why:hover, .why[aria-expanded="true"] { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+  .why:hover, .why[aria-expanded="true"] {
+    color: var(--accent-ink); box-shadow: var(--elev-2);
+  }
   .why .chev { transition: transform var(--t-med); }
   .why[aria-expanded="true"] .chev { transform: rotate(180deg); }
 
   /* ---------------- explanation ---------------- */
   .explain {
-    margin-top: var(--s3); width: 100%; background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden;
+    margin-top: var(--s3); width: 100%; background: var(--surface); border: 0;
+    border-radius: var(--r); box-shadow: var(--elev-2); overflow: hidden;
     animation: rise .25s var(--ease);
   }
   @keyframes rise { from { opacity: 0; transform: translateY(-4px) } }
-  .ex-top { padding: var(--s4); background: var(--surface-2); border-bottom: 1px solid var(--line); }
-  .ex-top h3 { margin: 0 0 var(--s1); font-family: var(--font-display); font-size: var(--f-lg); font-weight: 600; letter-spacing: -.005em; }
+  /* No band, no step: the panel is ONE surface.  The title carries the same
+     hairline the section eyebrows use, so the eye reads a hierarchy that is
+     drawn rather than shaded. */
+  .ex-top { padding: var(--s4) var(--s4) var(--s2); }
+  .ex-top h3 {
+    margin: 0 0 var(--s1); display: flex; align-items: center; gap: var(--s3);
+    font-family: var(--font-display); font-size: var(--f-lg); font-weight: 600; letter-spacing: -.005em;
+  }
+  .ex-top h3::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
   .ex-top p { margin: 0; font-size: var(--f-md); color: var(--ink-soft); line-height: var(--lh-body); }
   .tags { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
   .tagx {
-    font-size: var(--f-xs); font-weight: 550; padding: 3px var(--s3); border-radius: 99px; border: 1px solid var(--line);
-    background: var(--surface); color: var(--ink-soft);
+    font-size: var(--f-xs); font-weight: 550; padding: 3px var(--s3); border-radius: 99px; border: 0;
+    background: var(--surface-2); color: var(--ink-soft);
   }
-  .tagx.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+  .tagx.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface-2)); }
   .techbtn {
     margin-top: var(--s3); display: inline-flex; align-items: center; min-height: var(--tap);
     background: none; border: 0; padding: 0; cursor: pointer;
@@ -437,12 +515,15 @@ export const HTML = `<!doctype html>
     .dots i { animation: blink var(--t-blink) ease-in-out infinite; }
     * { scroll-behavior: auto !important; }
   }
+  /* Inside the panel there is no room for a second outline: a journey node is a
+     well in the surface, the trained note is the one RAISED card, and the answer
+     is the one warm block.  Three roles, told apart by value — not by borders. */
   .jnode {
-    border: 1px solid var(--line); border-radius: var(--r-sm); padding: var(--s3) var(--s4);
+    border: 0; border-radius: var(--r-sm); padding: var(--s3) var(--s4);
     background: var(--surface-2);
   }
   .jnode.ask { background: none; }
-  .jnode.out { background: none; border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
+  .jnode.out { background: var(--accent-soft); }
   .jlabel {
     font-size: var(--f-xs); font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
     color: var(--ink-faint); margin-bottom: var(--s1); display: flex; align-items: center; gap: var(--s2);
@@ -461,13 +542,17 @@ export const HTML = `<!doctype html>
 
   /* the trained note — the evidence, visually the centrepiece */
   .note-card {
-    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
-    border-radius: var(--r-sm); overflow: hidden; background: var(--surface);
+    border: 0; border-radius: var(--r-sm); overflow: hidden; background: var(--surface);
+    box-shadow: var(--elev-1);
   }
   .note-card .head {
     display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4);
     background: var(--accent-soft); color: var(--accent-ink);
     font-size: var(--f-xs); letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+  }
+  /* A quotation mark, not a star: this block is QUOTED TEXT. */
+  .note-card .head .q {
+    font-family: var(--font-display); font-size: 20px; line-height: 1; margin-top: -3px;
   }
   /* Same shape as a pair card: label above its text on a phone, two columns
      from 560px up, so the reader learns the pattern once. */
@@ -521,8 +606,8 @@ export const HTML = `<!doctype html>
   .badge {
     flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft);
     color: var(--accent); display: grid; place-items: center;
-    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   }
+  .badge span { font-family: var(--font-display); font-size: 15px; font-weight: 600; line-height: 1; }
   .st-txt { flex: 1; min-width: 0; }
   .st-txt h4 { margin: 0 0 2px; font-size: var(--f-md); font-weight: 620; display: flex; align-items: center; gap: var(--s2); }
   .st-txt p { margin: 0; font-size: var(--f-sm); color: var(--ink-soft); line-height: var(--lh-snug); }
@@ -541,11 +626,11 @@ export const HTML = `<!doctype html>
   .step .note { color: var(--ink-soft); margin-top: 2px; font-size: var(--f-sm); line-height: var(--lh-snug); }
   .io { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s2); align-items: center; }
   .chip {
-    background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px;
+    background: var(--surface-2); border: 0; border-radius: 6px;
     padding: 2px var(--s2); font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
     max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .chip.out { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .chip.out { color: var(--ink); background: var(--accent-soft); }
   .arrow { color: var(--ink-faint); font-size: var(--f-xs); }
 
   details.more { border-top: 1px solid var(--line); }
@@ -557,7 +642,7 @@ export const HTML = `<!doctype html>
   details.more > summary::-webkit-details-marker { display: none }
   details.more > summary:hover { color: var(--accent); }
   details.more .inner { padding: 0 var(--s4) var(--s4); font-size: var(--f-md); color: var(--ink-soft); }
-  .rej { padding: var(--s2) 0; border-top: 1px dashed var(--line); line-height: var(--lh-snug); font-size: var(--f-sm); }
+  .rej { padding: var(--s2) 0; border-top: 1px solid var(--line-soft); line-height: var(--lh-snug); font-size: var(--f-sm); }
   .rej b { color: var(--ink); font-weight: 600; display: block; }
   .rej-raw {
     margin-top: 3px; font-size: var(--f-xs); color: var(--ink-faint);
@@ -566,8 +651,7 @@ export const HTML = `<!doctype html>
   .flag {
     display: flex; gap: var(--s2); align-items: flex-start; margin: 0 var(--s4) var(--s4); padding: var(--s3);
     border-radius: var(--r-sm); font-size: var(--f-sm); line-height: var(--lh-snug);
-    background: color-mix(in srgb, var(--warn) 11%, transparent);
-    border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
+    background: color-mix(in srgb, var(--warn) 11%, transparent); border: 0;
   }
 
   /* On a phone the explanation comes up as a SHEET from the bottom edge: full
@@ -622,13 +706,17 @@ export const HTML = `<!doctype html>
   }
 
   /* ---------------- composer ---------------- */
-  .composer { flex: none; border-top: 1px solid var(--line); background: var(--bg); padding: var(--s3) 0 var(--s4); }
+  .composer { flex: none; border-top: 1px solid var(--line-soft); background: var(--bg); padding: var(--s3) 0 var(--s4); }
+  /* The one place you type is material, like a card — not another outlined box.
+     Focus is answered by a ring plus a deeper step, never by a border colour. */
   .field {
     display: flex; gap: var(--s2); align-items: flex-end; background: var(--surface);
-    border: 1px solid var(--line); border-radius: var(--r); padding: 4px 4px 4px var(--s4);
-    transition: border-color var(--t-fast);
+    border: 0; border-radius: var(--r); box-shadow: var(--elev-1);
+    padding: 4px 4px 4px var(--s4); transition: var(--t-fast);
   }
-  .field:focus-within { border-color: var(--accent); }
+  .field:focus-within {
+    box-shadow: var(--elev-2), 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+  }
   #q {
     flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit;
     font-size: var(--f-base); line-height: var(--lh-snug); resize: none; max-height: 150px;
@@ -650,7 +738,12 @@ export const HTML = `<!doctype html>
   }
   summary:focus-visible { outline-offset: -2px; border-radius: 8px; }
 
-  .foot { text-align: center; font-size: var(--f-xs); color: var(--ink-faint); margin: var(--s2) 0 0; }
+  /* A status bar, not a sentence: what it is on the left, how to drive it on the
+     right. */
+  .foot {
+    display: flex; justify-content: space-between; gap: var(--s3);
+    font-size: var(--f-xs); color: var(--ink-faint); margin: var(--s2) 0 0;
+  }
   @media (max-width: 620px) { .foot { display: none; } }
 </style>
 </head>
@@ -717,7 +810,7 @@ export const HTML = `<!doctype html>
           </svg>
         </button>
       </div>
-      <p class="foot">Deterministic · auditable · CPU-only — <b>Enter</b> to send, <b>Shift+Enter</b> for a new line.</p>
+      <p class="foot"><span>Deterministic · auditable · CPU-only</span><span><b>Enter</b> to send · <b>Shift+Enter</b> for a new line</span></p>
     </div>
   </div>
 </main>
@@ -1004,34 +1097,30 @@ export const HTML = `<!doctype html>
     // "stored notes" — the words the rest of the page uses.  "learnt contexts"
     // is Sema's own vocabulary for the same thing, and it was the one place it
     // leaked into the interface.
-    var held = group(d.totalContexts) + ' stored notes';
+    var held = group(d.totalContexts) + ' notes held';
 
     if (!d.pairs.length) {
       meta.textContent = held;
       var empty = el('div', 'ex-empty');
-      empty.innerHTML = svg(
-        '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/>' +
-          '<path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
-        18,
-      );
-      var ebody = el('div');
-      ebody.appendChild(el('p', 'ex-empty-title', 'Nothing matched'));
-      ebody.appendChild(el(
+      empty.appendChild(el('p', 'ex-empty-title', 'Nothing matched'));
+      empty.appendChild(el(
         'p',
         'ex-empty-msg',
         d.note ||
           'Sema holds a finite set of notes, and nothing sits above the parts of ' +
             'your text it recognised.',
       ));
-      empty.appendChild(ebody);
       list.appendChild(empty);
       return;
     }
 
-    meta.textContent = d.browsed
-      ? 'A few real notes from this memory · ' + d.tookMs + 'ms · ' + held
-      : d.pairs.length + ' matched · ' + d.resolved + ' parts of your text found in the graph · ' +
-        d.tookMs + 'ms · ' + held;
+    // Two tones: what happened, then how long it took — three facts joined by
+    // middots read like a log line, not like a caption.
+    meta.innerHTML = '';
+    meta.appendChild(el('span', null, d.browsed
+      ? 'A few of the ' + held + ', picked at random'
+      : d.pairs.length + ' matched · ' + d.resolved + ' parts of your text recognised'));
+    meta.appendChild(el('span', 'dim', d.tookMs + ' ms'));
 
     d.pairs.forEach(function (p) {
       // The whole card is a <button>, and a button's content model is PHRASING
@@ -1071,13 +1160,6 @@ export const HTML = `<!doctype html>
   }
 
   /* ================= explanation ================= */
-  var ICONS = {
-    read:   '<path d="M4 5.5h16v13H4z"/><path d="M8 9.5h8M8 13.5h5"/>',
-    find:   '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
-    reason: '<circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.4 6H14a4 4 0 0 1 0 8H9a4 4 0 0 0 0 8"/>',
-    decide: '<path d="M12 4v16"/><path d="M4.5 8.5h15"/><path d="M4.5 8.5 2 14h5zM19.5 8.5 17 14h5z"/>',
-    answer: '<path d="M21 12a9 9 0 1 1-3.6-7.2"/><path d="M8.5 12l2.8 2.8L21 6"/>'
-  };
   var CHEV = '<path d="M6 9l6 6 6-6"/>';
 
   function plural(n, one, many) {
@@ -1174,7 +1256,7 @@ export const HTML = `<!doctype html>
 
         var card = el('div', 'note-card');
         var head = el('div', 'head');
-        head.innerHTML = svg('<path d="M12 3l2.4 5.6L20 9.6l-4 4.2.9 5.9L12 17l-4.9 2.7.9-5.9-4-4.2 5.6-1z"/>', 12);
+        head.appendChild(el('span', 'q', '“'));
         head.appendChild(el('span', null, 'The note it had been taught'));
         card.appendChild(head);
 
@@ -1239,12 +1321,14 @@ export const HTML = `<!doctype html>
     }
 
     var wrapS = el('div', 'stages');
-    x.stages.forEach(function (stage) {
+    x.stages.forEach(function (stage, si) {
       var det = el('details', 'stage');
       var sum = document.createElement('summary');
 
       var badge = el('div', 'badge');
-      badge.innerHTML = svg(ICONS[stage.icon] || ICONS.reason, 14);
+      // The stages are an ORDER, so the mark is its number — a set of five
+      // generic glyphs only said "icons were available".
+      badge.appendChild(el('span', null, String(si + 1)));
       sum.appendChild(badge);
 
       var txt = el('div', 'st-txt');
