@@ -420,6 +420,12 @@ function itemsOf(items: readonly { text: string }[]): string[] {
  *  to believe them. The first one present names what happened. */
 const DECISIVE: Array<[string, string]> = [
   ["evalComputation", "worked the arithmetic out exactly"],
+  // Before `follow-edge`: when a join fired it is what carried the answer
+  // across (it derived a second fact through the subject the first one
+  // contains), while `follow-edge` only carried the intermediate.  Ordered
+  // after it, the panel reported the FIRST hop's note as the answer's
+  // evidence.  Sema names the move `derive-through` (added in 0.7.7).
+  ["derive-through", "derived the answer through a fact it already held"],
   ["follow-edge", "followed a connection it had been taught"],
   ["castSchema", "applied a pattern it had learnt from examples"],
   ["projectCounterfactual", "substituted into a pattern it had learnt"],
