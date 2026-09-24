@@ -20,6 +20,7 @@
 // that is the engine's now, in one place: this file is the reader, not the search.
 
 import type { CorpusTextPair, CorpusTextResult, Mind } from "@hviana/sema";
+import { decodeText } from "@hviana/sema";
 
 /** Bytes of each side rendered into a preview. */
 const PREVIEW_BYTES = 220;
@@ -93,13 +94,37 @@ export class ExploreService {
     return { ...out, tookMs: Math.round(performance.now() - t0) };
   }
 
-  /** Browse the memory, from where the last browse stopped. */
+  /** Browse the memory, from where the last browse stopped.
+   *
+   *  The browse comes back in BYTES — `sampleCorpus` is the multimodal call — and
+   *  the panel wants text.  The decoding is the engine's own (`decodeText`), the
+   *  one the text search uses, so search and browse cannot disagree about what a
+   *  stored note says.  Building the result field by field rather than spreading
+   *  it is deliberate: it makes every field a decision, and `query` has an honest
+   *  value here (a browse has no question). */
   sample(limit: number): ExploreResult {
     const mind = this.#require();
     const n = this.#bounded(limit);
     const t0 = performance.now();
     const out = mind.sampleCorpus(n, this.#from);
     this.#from += n;
-    return { ...out, tookMs: Math.round(performance.now() - t0) };
+    return {
+      query: "",
+      pairs: out.pairs.map((p) => ({
+        context: decodeText(p.context),
+        continuation: decodeText(p.continuation),
+        contextId: p.contextId,
+        continuationId: p.continuationId,
+        matchedBytes: p.matchedBytes,
+        contextTruncated: p.contextTruncated,
+        continuationTruncated: p.continuationTruncated,
+      })),
+      resolved: out.resolved,
+      reached: out.reached,
+      totalContexts: out.totalContexts,
+      browsed: out.browsed,
+      note: out.miss === "matched" ? undefined : `browse: ${out.miss}`,
+      tookMs: Math.round(performance.now() - t0),
+    };
   }
 }
