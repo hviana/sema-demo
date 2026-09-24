@@ -1,33 +1,25 @@
 // explore.ts — read the trained memory back out of the DAG.
 //
-// A trained experience pair IS one continuation edge: `src` is the context that
-// was deposited, `dst` is what Sema learnt follows it.  Reading them back uses
-// the store's own structure and its own indexes — no auxiliary index is built,
-// and nothing here writes to the store.
+// The search itself lives in the engine, once: `searchCorpus` reads a query's
+// resolved subtrees, climbs to the edge-bearing contexts above them and returns
+// the pairs a caller can show.  `searchCorpusText` is its text case — encode,
+// search, decode — and `sampleCorpus` browses the id space DETERMINISTICALLY
+// from the caller's own offset, so browsing twice shows different notes without
+// a random draw (same seed, same order, same query ⇒ the same answer).
 //
-// HOW THE SEARCH WORKS.  It is the same move `recognise()` makes:
+// WHAT THIS FILE KEEPS.  The result the interface reads, taken from the engine's
+// own fields so the two cannot drift, plus the milliseconds this demo measured.
+// The browse CURSOR, which is exactly the offset the engine asks for.  And
+// `renderNode`, shared with the explanation builder, which shows the same stored
+// notes as the evidence behind an answer.
 //
-//   1. PERCEIVE the query into a content-defined tree.  Segmentation is
-//      deterministic — identical bytes always cut identically — so the chunks
-//      a query produces are the chunks training produced for the same text.
-//   2. CONTENT-ADDRESS those chunks bottom-up: a leaf through `findLeaf`, a
-//      branch through `findBranch` over its resolved kid ids.  Both are point
-//      probes on `idx_node_h`, the store's content-address index.  A node that
-//      comes back is literally the node training interned.
-//   3. CLIMB the structural `kid` table from each resolved node to the
-//      edge-bearing contexts above it (`edgeAncestors`), and read the
-//      continuation off the `edge` table (`nextFirst`).
-//
-// Cost is set by how much of the QUERY resolves, never by the size of the
-// store, and every stage is explicitly bounded below.
-//
-// WHAT THIS IS NOT.  It is exact content addressing, not fuzzy keyword search:
-// a query shares results with a stored note when it shares actual chunk-aligned
-// content with it.  An arbitrary mid-word fragment resolves to nothing, and the
-// honest answer there is "nothing matched" — plus browsing, which is why
-// `sample()` exists.
+// WHAT IT NO LONGER DOES.  It used to content-address the query, climb the kid
+// table and read the continuation by hand — perceive, findLeaf, findBranch,
+// edgeAncestors, nextFirst — with its own limits (a minimum match size, a climb
+// cap, contexts per climb, sampling probes) and its own random browse.  All of
+// that is the engine's now, in one place: this file is the reader, not the search.
 
-import type { Mind, Sema } from "@hviana/sema";
+import type { CorpusTextPair, CorpusTextResult, Mind } from "@hviana/sema";
 
 /** Bytes of each side rendered into a preview. */
 const PREVIEW_BYTES = 220;
@@ -35,47 +27,15 @@ const PREVIEW_BYTES = 220;
 /** Hard ceiling on results per request. */
 const MAX_LIMIT = 24;
 
-/** A resolved node must account for at least this many bytes to vote: single
- *  characters resolve against almost any store and mean nothing. */
-const MIN_MATCH_BYTES = 4;
+/** One stored experience pair, as the interface shows it.  ALIASED to the
+ *  engine's own pair rather than restated, so a field cannot drift. */
+export type Pair = CorpusTextPair;
 
-/** Resolved nodes we climb from, largest first. */
-const MAX_CLIMBS = 24;
-
-/** Edge-bearing contexts requested per climb. */
-const CONTEXTS_PER_CLIMB = 6;
-
-/** Probes used to stride-sample the id space when browsing. */
-const SAMPLE_PROBES = 6000;
-
-export interface Pair {
-  context: string;
-  continuation: string;
-  contextTruncated: boolean;
-  continuationTruncated: boolean;
-  contextId: number;
-  continuationId: number;
-  /** Bytes of the query this pair was matched on — 0 when browsing. */
-  matchedBytes: number;
-}
-
-export interface ExploreResult {
-  query: string;
-  pairs: Pair[];
-  /** Subtrees of the query that content-addressed to a real stored node. */
-  resolved: number;
-  /** Distinct edge-bearing contexts the climb reached. */
-  reached: number;
-  tookMs: number;
-  /** Distinct contexts that carry a learnt continuation, store-wide. */
-  totalContexts: number;
-  /** True when these are browse samples rather than search results. */
-  browsed: boolean;
-  note?: string;
-}
+/** What a search or a browse returns: the engine's fields, plus the
+ *  milliseconds this demo measured. */
+export type ExploreResult = CorpusTextResult & { tookMs: number };
 
 const dec = new TextDecoder();
-const enc = new TextEncoder();
 
 /** Shared with the explanation builder, which shows the same stored notes as
  *  the evidence behind an answer. */
@@ -95,7 +55,7 @@ function render(mind: Mind, id: number, cap: number): [string, boolean] {
     // Cutting at a byte boundary can split a multi-byte character, which
     // decodes to U+FFFD. Most of this corpus is non-Latin, so a trailing
     // replacement char is the common case here, not an exotic one.
-    .replace(/�+$/, "")
+    .replace(/\uFFFD+$/, "")
     .replace(/\s+/g, " ")
     .trim();
   return [text, truncated];
@@ -104,6 +64,9 @@ function render(mind: Mind, id: number, cap: number): [string, boolean] {
 /** Reads the trained store as data — never writes, never trains. */
 export class ExploreService {
   #mind: Mind | null = null;
+  /** Where the next browse starts.  The engine strides from the caller's own
+   *  offset, so advancing it shows different notes without a random draw. */
+  #from = 0;
 
   attach(mind: Mind): void {
     this.#mind = mind;
@@ -118,127 +81,25 @@ export class ExploreService {
     return this.#mind;
   }
 
-  /** Turn a context node into a presentable pair, or null when it holds no
-   *  continuation or renders empty. */
-  #pair(mind: Mind, id: number, matchedBytes: number): Pair | null {
-    const outs = mind.store.nextFirst(id, 1);
-    if (outs.length === 0) return null;
-    const [context, contextTruncated] = render(mind, id, PREVIEW_BYTES);
-    const [continuation, continuationTruncated] = render(
-      mind,
-      outs[0],
-      PREVIEW_BYTES,
-    );
-    if (!context || !continuation) return null;
-    return {
-      context,
-      continuation,
-      contextTruncated,
-      continuationTruncated,
-      contextId: id,
-      continuationId: outs[0],
-      matchedBytes,
-    };
+  #bounded(limit: number): number {
+    return Math.max(1, Math.min(MAX_LIMIT, Math.floor(limit) || 1));
   }
 
-  /** Content-address the query's chunks and climb to the contexts above them. */
+  /** Which stored notes does this query reach? */
   search(query: string, limit: number): ExploreResult {
-    const mind = this.#require();
-    const started = performance.now();
-    const want = Math.max(1, Math.min(limit || 8, MAX_LIMIT));
-    const store = mind.store;
-
-    const tree = mind.perceive(enc.encode(query));
-
-    // Resolve bottom-up. A branch can only be addressed once every kid is,
-    // which is exactly how the store interned it.
-    const resolvedIds = new Set<number>();
-    const resolve = (n: Sema): number | null => {
-      if (n.leaf) {
-        const id = store.findLeaf(n.leaf);
-        if (id !== null) resolvedIds.add(id);
-        return id;
-      }
-      const kids: number[] = [];
-      for (const kid of n.kids ?? []) {
-        const got = resolve(kid);
-        if (got === null) return null;
-        kids.push(got);
-      }
-      const id = store.findBranch(kids);
-      if (id !== null) resolvedIds.add(id);
-      return id;
-    };
-    resolve(tree);
-
-    // Climb from the biggest matches first: a whole clause is evidence, a
-    // single character is noise.
-    const byLength = [...resolvedIds]
-      .map((id) => [id, store.contentLen(id, 512)] as const)
-      .filter(([, len]) => len >= MIN_MATCH_BYTES)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, MAX_CLIMBS);
-
-    // Weight each context by how much query content reached it.
-    const weight = new Map<number, number>();
-    for (const [id, len] of byLength) {
-      for (const root of mind.edgeAncestors(id, CONTEXTS_PER_CLIMB).roots) {
-        weight.set(root, (weight.get(root) ?? 0) + len);
-      }
-    }
-
-    const pairs: Pair[] = [];
-    for (const [id, w] of [...weight.entries()].sort((a, b) => b[1] - a[1])) {
-      if (pairs.length >= want) break;
-      const pair = this.#pair(mind, id, w);
-      if (pair) pairs.push(pair);
-    }
-
-    const tookMs = Math.round(performance.now() - started);
-    return {
-      query,
-      pairs,
-      resolved: byLength.length,
-      reached: weight.size,
-      tookMs,
-      totalContexts: store.edgeSourceCount(),
-      browsed: false,
-      note: pairs.length > 0
-        ? undefined
-        : weight.size === 0
-        ? "No trained note sits above the parts of that text Sema recognised. It addresses content exactly, so try wording closer to something it was actually given — or browse the examples below."
-        : "That text reaches stored nodes, but none of them carries a learnt continuation.",
-    };
+    const n = this.#bounded(limit);
+    const t0 = performance.now();
+    const out = this.#require().searchCorpusText(query, n);
+    return { ...out, tookMs: Math.round(performance.now() - t0) };
   }
 
-  /** Browse real pairs from the store, striding the id space so the sample is
-   *  spread rather than one local cluster. */
+  /** Browse the memory, from where the last browse stopped. */
   sample(limit: number): ExploreResult {
     const mind = this.#require();
-    const started = performance.now();
-    const want = Math.max(1, Math.min(limit || 6, MAX_LIMIT));
-    const store = mind.store;
-    const total = store.nodeCount();
-
-    const pairs: Pair[] = [];
-    // A different offset each call, so browsing twice shows different notes.
-    const jitter = Math.random();
-    for (let i = 0; i < SAMPLE_PROBES && pairs.length < want; i++) {
-      const id = Math.floor(((i / SAMPLE_PROBES + jitter) % 1) * total);
-      if (!store.has(id) || !store.hasNext(id)) continue;
-      if (store.contentLen(id, 40) < 12) continue;
-      const pair = this.#pair(mind, id, 0);
-      if (pair) pairs.push(pair);
-    }
-
-    return {
-      query: "",
-      pairs,
-      resolved: 0,
-      reached: pairs.length,
-      tookMs: Math.round(performance.now() - started),
-      totalContexts: store.edgeSourceCount(),
-      browsed: true,
-    };
+    const n = this.#bounded(limit);
+    const t0 = performance.now();
+    const out = mind.sampleCorpus(n, this.#from);
+    this.#from += n;
+    return { ...out, tookMs: Math.round(performance.now() - t0) };
   }
 }

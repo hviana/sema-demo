@@ -308,6 +308,8 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
     "This is the move that carries the answer: it had been given a note saying this text is followed by that text.",
   "derive-through": () =>
     "It took the subject the first note was about and looked that subject up again, so the answer comes from a second note rather than from the first one alone.",
+  deriveThroughMiss: () =>
+    "It looked for a note filed under the subject it had just reached and found none there, so it kept looking instead of stopping.",
   bridge: () =>
     "Part of your sentence was still unaccounted for, and this covered the next stretch of it.",
   substitutionBridge: () =>
@@ -325,6 +327,8 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
   extractBySkill: () =>
     "It pulled the answer out the way its worked examples do.",
   bindReference: () => "It worked out what a word in your question refers to.",
+  regimePrediction: () =>
+    "It worked out what kind of question this is before choosing how to answer it.",
   prefixCompletion: () =>
     "Your opening matched one it had seen, so it finished it the way it was taught.",
   computeExtensions: (n) => {

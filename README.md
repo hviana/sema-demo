@@ -45,10 +45,10 @@ at all: the banner is invisible there, so without this the app looks like it did
 nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
 binary in Terminal, so on those two the banner is visible either way.
 
-The dependency is deliberately **unpinned** (`npm:@hviana/sema`, no version) and
-the lockfile is disabled, so a fresh resolution always takes the latest release.
-Every `compile:*` task re-resolves it too, so a binary you ship is never built
-against a stale cached copy.
+The dependency is **pinned** (`npm:@hviana/sema@0.8.6`) and the lockfile is
+disabled: which engine this app runs is written down where it can be read. Every
+`compile:*` task re-resolves it too, so a binary you ship is never built against
+a stale cached copy.
 
 ## Build binaries
 
@@ -224,20 +224,14 @@ A trained "experience pair" is literally one continuation edge in the DAG: the
 `src` node is the context that was deposited, the `dst` node is what Sema learnt
 follows it. `GET /api/explore?q=…&limit=…` reads them back.
 
-It builds **no index of its own**. It uses the store's own structure and the
-indexes already in it, making the same move `recognise()` makes:
-
-1. **Perceive** the query into a content-defined tree. Segmentation is
-   deterministic — identical bytes always cut identically — so the chunks a
-   query produces are the chunks training produced for the same text.
-2. **Content-address** those chunks bottom-up: a leaf through `findLeaf`, a
-   branch through `findBranch` over its resolved kid ids. Both are point probes
-   on `idx_node_h`, the store's content-address index. A node that comes back is
-   literally the node training interned.
-3. **Climb** the structural `kid` table from each resolved node to the
-   edge-bearing contexts above it (`edgeAncestors`), and read the continuation
-   off the `edge` table (`nextFirst`). Contexts are weighted by how much query
-   content reached them, so a whole clause outranks a stray character.
+It builds **no index of its own**, and it keeps no search of its own either: the
+search is the engine's — `searchCorpus`, and `searchCorpusText` for the text
+case — and it makes the same move `recognise()` makes, over the store's own
+structure and the indexes already in it. It perceives the query into a
+content-defined tree, content-addresses those chunks against the store's
+content-address index, and climbs to the edge-bearing contexts above them.
+Contexts are weighted by how much query content reached them, so a whole clause
+outranks a stray character.
 
 Cost is set by how much of the _query_ resolves, never by the size of the store.
 Every stage is bounded:
@@ -245,16 +239,16 @@ Every stage is bounded:
 | Bound            | Value                                                         |
 | ---------------- | ------------------------------------------------------------- |
 | Results          | `limit`, hard-capped at 24                                    |
-| Nodes climbed    | 24, largest match first; a match under 4 bytes never votes    |
-| Contexts / climb | 6                                                             |
 | Preview per side | 220 bytes via `bytesPrefix`, so one huge node cannot dominate |
+
+The search's own limits are the engine's, and live with it.
 
 **What this is and is not.** It is exact content addressing, not fuzzy keyword
 search. A query returns pairs when it shares genuinely chunk-aligned content
 with a stored note; an arbitrary mid-word fragment resolves to nothing, and the
 honest answer there is "nothing matched". That is why the field also
-**browses**: an empty query stride-samples real pairs out of the store, which is
-what the welcome screen shows on load.
+**browses**: a browse reads real pairs out of the store, striding the id space
+from a caller's own offset, and that is what the welcome screen shows on load.
 
 Searches run through the same serialisation queue as chat, because the perceive
 and the climb must not interleave with an inference in flight. The store is only
