@@ -65,6 +65,42 @@ const STAGES: Stage[] = [
  *  of them borrows a term from it: no "grounding", no "resonance", no "schema",
  *  no "extraction". Each one is what a person would say they were doing. */
 const MECHANISMS: Record<string, { stage: string; label: string }> = {
+  // THE WALK'S OWN ENDINGS, SHOWN.  The engine names why it stopped (0.8.7), but
+  // the panel only renders what is in this map — a step without an entry is
+  // skipped by `explain`, so a glossary sentence for it would never be read.
+  // These are the ones a reader actually wants: "why did it stop here?"
+  enumerationExhausted: {
+    stage: "reason",
+    label: "Looking for one more step, and finding none",
+  },
+  pivotCandidateRefused: {
+    stage: "reason",
+    label: "Turning down a step that would repeat itself",
+  },
+  absorbCandidateRefused: {
+    stage: "reason",
+    label: "A next step that led nowhere new",
+  },
+  walkClosed: {
+    stage: "reason",
+    label: "Everything asked for was accounted for",
+  },
+  walkEndedWithoutOffer: {
+    stage: "reason",
+    label: "Stopping with part of the question unexplained",
+  },
+  reachAlreadySpokenFor: {
+    stage: "reason",
+    label: "Arriving somewhere already accounted for",
+  },
+  readBoundSaturated: {
+    stage: "find",
+    label: "Reading as many follow-ups as it is allowed to",
+  },
+  echoGuard: {
+    stage: "decide",
+    label: "Answering from memory: the question was itself a known answer",
+  },
   recognise: { stage: "read", label: "Spotting wording it knows" },
   perceive: { stage: "read", label: "Breaking your question into pieces" },
   resonate: { stage: "find", label: "Looking for notes that feel similar" },
@@ -310,6 +346,38 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
     "It took the subject the first note was about and looked that subject up again, so the answer comes from a second note rather than from the first one alone.",
   deriveThroughMiss: () =>
     "It looked for a note filed under the subject it had just reached and found none there, so it kept looking instead of stopping.",
+  // The walk's own endings, named by the engine since 0.8.7.  A reader who sees
+  // one of these is asking "why did it stop?" — so each sentence answers THAT,
+  // in the words of someone who does not know what an enumeration is.
+  enumerationExhausted: () =>
+    "It looked for one more step it could take from where it had got to, and there was none left to take.",
+  pivotCandidateRefused: () =>
+    "It did find something it could follow next, and turned it down: it would have repeated what it already had, or only handed the question back.",
+  absorbCandidateRefused: () =>
+    "The next step led nowhere new, so it looked for a different way forward rather than stopping there.",
+  walkClosed: () =>
+    "Everything you asked about had been accounted for, so there was nothing left to look for.",
+  walkEndedWithoutOffer: () =>
+    "It followed what it could and stopped with part of your question still unexplained — it had nothing further to try.",
+  readBoundSaturated: () =>
+    "It read as many follow-ups at once as it is allowed to, so there may be more that it did not reach.",
+  reachAlreadySpokenFor: () =>
+    "It arrived at something it had already accounted for, so going over it again would have added nothing.",
+  echoGuard: () =>
+    "Your question was itself something it had learnt as an answer, so it answered straight from what it knew instead of carrying on.",
+  // The last five names the 0.8.7 engine emits with no sentence anywhere the
+  // explainer looks — found by asking, for each of the 35 step names eleven real
+  // questions produced, whether the file keys it at all.  Five did not.
+  fuseAttention: () =>
+    "Parts of the answer it had learnt separately were joined into a form it had learnt as a whole.",
+  postGrounding: () =>
+    "After answering, it checked whether anything in your question had been left unexplained.",
+  reason: () =>
+    "It went one step further than the material it had already recognised — this is reasoning, not recall.",
+  singleCluster: () =>
+    "Every part of your text pointed at the same small region of what it knows, so it read them together.",
+  thinGrounding: () =>
+    "It recognised only a little of what you asked, so there was little for it to follow.",
   bridge: () =>
     "Part of your sentence was still unaccounted for, and this covered the next stretch of it.",
   substitutionBridge: () =>

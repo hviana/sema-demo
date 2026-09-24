@@ -45,7 +45,7 @@ at all: the banner is invisible there, so without this the app looks like it did
 nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
 binary in Terminal, so on those two the banner is visible either way.
 
-The dependency is **pinned** (`npm:@hviana/sema@0.8.6`) and the lockfile is
+The dependency is **pinned** (`npm:@hviana/sema@0.8.7`) and the lockfile is
 disabled: which engine this app runs is written down where it can be read. Every
 `compile:*` task re-resolves it too, so a binary you ship is never built against
 a stale cached copy.
