@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@hviana/sema": "npm:@hviana/sema@1.0.0"
+    "@hviana/sema": "npm:@hviana/sema@1.0.1"
   },
   "minimumDependencyAge": 0,
   "lock": false,
