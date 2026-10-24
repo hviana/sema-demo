@@ -45,7 +45,7 @@ at all: the banner is invisible there, so without this the app looks like it did
 nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
 binary in Terminal, so on those two the banner is visible either way.
 
-The dependency is **pinned** (`npm:@hviana/sema@0.8.7`) and the lockfile is
+The dependency is **pinned** (`npm:@hviana/sema@1.0.3`) and the lockfile is
 disabled: which engine this app runs is written down where it can be read. Every
 `compile:*` task re-resolves it too, so a binary you ship is never built against
 a stale cached copy.
@@ -141,29 +141,70 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   actually holds — see [below](#exploring-the-training-data). Clicking a result
   asks Sema that very context, so the examples on offer are always real ones
   drawn from this store rather than hardcoded guesses.
-- **"Why this answer?"** — evidence first. Sema reports a _rationale_ of every
-  mechanism it ran (238 steps is ordinary), which is far too much to read. The
-  panel leads instead with the thing the answer actually rests on:
+- **"Why this answer?"** — the structure, drawn. Sema reports a _rationale_ of
+  every mechanism it ran (238 steps is ordinary), and that rationale is a
+  **graph**: each step carries the mechanism it ran _inside_ (`parent`) and the
+  earlier steps whose output it consumed (`dependsOn`). Bucketing all of it
+  under five headings — which is what this panel used to do — is short and says
+  nothing, because a bucket is a category, not a step: the reader never sees
+  what led to what. The structure _is_ the explanation, so the panel draws it.
 
-  > **You asked** → _recognised as something it had been taught_ → **the note it
-  > had been taught** (`Given` / `It learnt`) → **the answer**
+  The test the panel is held to: **delete every sentence from it and the picture
+  must still read.** A relation that is only asserted in prose is a relation the
+  design failed to show.
 
-  That middle card is the real stored pair, pulled out of the graph by the node
-  ids the rationale tags its items with — not a paraphrase of the reasoning.
-  Under it sits the corroboration: _"102 different stored notes lead to this
-  same answer"_, counted with one indexed `prevCount`, with examples on demand.
+  **1 · Where the answer came from.** The flow leads, because it is what was
+  asked. One box per real place in the graph, read back verbatim, joined by
+  drawn arrows. The first box is your own text with every piece the store
+  recognised painted onto it _in place_, at the real byte offsets the engine
+  reported, in three states: the stretch that **carried the answer**, wording it
+  merely **holds**, and wording it holds whose continuation **answers a
+  different question**. Reading and walking are one place, so they are drawn as
+  one box; printing the question twice, two hundred pixels apart, told the
+  reader they were two.
 
-  Everything else is progressive disclosure: the five stages (read the question
-  → find what it knows about this → reason it through → weigh the options → say
-  it back) and **roads not taken** — the approaches Sema tried and rejected —
-  are collapsed below.
+  **Each mechanism gets its own silhouette**, because they are not the same
+  thing happening:
 
-  Every step in there gets the same treatment, whether it succeeded or gave up:
-  a plain sentence saying what that step contributed. Sema's exact note and the
-  spans each step consumed are the auditable record and are always in the page,
-  but they sit behind one **"Show Sema's own notes"** switch — printed inline
-  they put a cost float on every row, and the sentence above already says what
-  happened. Turn it on and
+  | the engine did                 | the picture does                                                                                                                                  |
+  | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | followed a learnt connection   | box → arrow → box, the arrow carrying the move and its cost                                                                                       |
+  | derived through a second fact  | the same, one box per hop                                                                                                                         |
+  | completed a phrase it had seen | both strings on one left edge, the shared opening **solid** and the rest of the note **faded** — you see your text _being_ the start of that note |
+  | answered from agreement        | one drawn line per stored note, each starting at its own row and all meeting the single point the next arrow leaves from                          |
+  | worked out a sum               | an `=` and a value, no arrow and no box — a shape that cannot be mistaken for a walk between two notes, because it is not one                     |
+  | said nothing                   | no chain at all, and the near misses shown against your own words with the stretch they share **solid**                                           |
+
+  Blur the text out and those six are still distinguishable. That is the point.
+
+  **2 · What it weighed.** One line: how many ways of answering it had, which
+  one it took, and what that cost. The engine's full cost ladder — read from its
+  own `decideGrounding` payload rather than scraped out of prose — is one click
+  below, because it is the most technical content in the panel and it measured
+  38–49% of the panel's height when it was an act of its own. Two different
+  numbers live on that ladder and get two different marks: a route that actually
+  ran has a **cost**, drawn as a filled bar; a route that did not has a
+  **floor** — the cheapest it could ever have come out at — drawn as a tick on
+  an empty track. Plotting both as filled bars is how a panel ends up showing
+  the winning route with the longest bar directly under a heading saying the
+  cheapest wins. A cost, never a confidence — and when only one route reached an
+  answer at all, the panel says no contest was recorded, because an uncontested
+  win is not a wide one.
+
+  **Below that, on demand:** what it recognised in your text (the counts, and a
+  chip per piece that lights that exact range when you point at it — tap, on a
+  phone, because a relation that only exists on hover does not exist where most
+  people read); the approaches it ruled out; and **the complete trace** — every
+  step, indented by the mechanism it ran inside, in the engine's own order, with
+  a dot for the kind of work and `←12` for the step whose output it consumed.
+  Nothing is grouped away; a run of identical steps in the same place is shown
+  once with its count, and the panel says when it is.
+
+  Every step gets a plain sentence saying what it contributed, whether it
+  succeeded or gave up. Sema's exact note and the spans each step consumed are
+  the auditable record and are always in the page, but they sit behind one
+  **"Show Sema's own notes"** switch — printed inline they put a cost float on
+  every row, and the sentence above already says what happened. Turn it on and
   `pool independent regions' evidence for a shared anchor (sum, not shortest
   path) (cost 0.0388)`
   appears one line under its plain reading, _"Separate parts of your question
@@ -182,9 +223,10 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   `evalComputation` reads "Doing the arithmetic". Nothing has to be learnt to
   follow the story, and the exact terms stay one line below it.
 
-  When there is no answer the panel reframes itself as **"Why Sema stayed
-  silent"** and opens the rejections by default, because there they _are_ the
-  explanation.
+  The reading of the rationale lives in its own file, `src/explain.ts`, apart
+  from the inference in `src/mind.ts`: what the engine did and what we say about
+  it are two different jobs, and keeping them apart is what stops the
+  explanation from quietly becoming a second opinion about the answer.
 
 ### Failure and recovery
 
@@ -194,9 +236,10 @@ rather than _"Unexpected token 'N'"_; an unreachable server says so and points
 at the terminal. Every failed turn carries **Try again**, which removes the dead
 turn and re-asks the same question.
 
-Motion respects `prefers-reduced-motion`: the panel entrance and the journey
-build are dropped entirely, along with the progress-bar sheen, while the
-spinners and typing dots stay — they are the only signal that work is in flight.
+Motion respects `prefers-reduced-motion`: the panel entrance and the staged
+arrival of the acts is dropped entirely, along with the progress-bar sheen,
+while the spinners and typing dots stay — they are the only signal that work is
+in flight.
 
 ### Accessibility
 

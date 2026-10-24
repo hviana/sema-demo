@@ -37,6 +37,9 @@ export const HTML = `<!doctype html>
     --ok-soft: #e8efea;
     --warn: #b07d1f;
     --danger: #b3453a;
+    /* One cool hue, for the one place the palette has to carry a CATEGORY
+       rather than a meaning: the trace's five families of work. */
+    --cool: #4f7693;
     --r: 14px;
     --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.05);
     /* Elevation: one soft step for content, one deeper for whatever floats.
@@ -108,6 +111,7 @@ export const HTML = `<!doctype html>
       --ok-soft: #1d2a22;
       --warn: #d3aa52;
       --danger: #e0796c;
+      --cool: #7fa9c6;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
       --elev-1: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 16px rgba(0, 0, 0, .4);
       --elev-2: 0 2px 6px rgba(0, 0, 0, .4), 0 18px 44px rgba(0, 0, 0, .5);
@@ -481,178 +485,476 @@ export const HTML = `<!doctype html>
     background: var(--surface-2); color: var(--ink-soft);
   }
   .tagx.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface-2)); }
+  /* An auditable layer nobody has asked for yet should not be the brightest
+     thing on the page: it sits one step quieter than the acts it precedes. */
   .techbtn {
-    margin-top: var(--s3); display: inline-flex; align-items: center; min-height: var(--tap);
+    margin-top: var(--s2); display: inline-flex; align-items: center; min-height: 34px;
     background: none; border: 0; padding: 0; cursor: pointer;
-    font: inherit; font-size: var(--f-md); color: var(--accent); text-decoration: underline;
-    text-underline-offset: 3px;
+    font: inherit; font-size: var(--f-sm); color: var(--ink-soft);
   }
-  /* The auditable layer: present in the DOM always, shown on request. */
-  .explain .rej-raw, .explain .io { display: none; }
-  .explain.tech .rej-raw { display: block; }
-  .explain.tech .io { display: flex; }
+  .techbtn:hover {
+    color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px;
+  }
+  /* The auditable layer: present in the DOM always, shown on request.  Written
+     as a :not() so no later component rule can out-specify it and leak the
+     engine's raw notes into the plain reading. */
+  .explain:not(.tech) .enote,
+  .explain:not(.tech) .rej-raw,
+  .explain:not(.tech) .nid,
+  .explain:not(.tech) .ns,
+  .explain:not(.tech) .io { display: none; }
+  .enote {
+    margin-top: var(--s2); font-family: var(--font-machine); font-size: var(--f-xs);
+    color: var(--ink-faint); line-height: 1.45; overflow-wrap: anywhere;
+  }
   .legend {
     margin: 0; padding: var(--s3) var(--s4) 0; font-size: var(--f-sm); color: var(--ink-faint);
     line-height: var(--lh-snug);
   }
 
-  /* ---- the journey: question → the note it used → the answer ---- */
-  .journey { padding: var(--s4) var(--s4) var(--s1); }
-  /* The journey is a sequence, so it arrives as one — each box settling after
-     the one it follows from. It reads as cause and effect rather than as a
-     list that happened to be stacked vertically. */
-  .journey > * { animation: jstep .34s cubic-bezier(.2,.7,.3,1) backwards; }
-  .journey > :nth-child(2) { animation-delay: .09s }
-  .journey > :nth-child(3) { animation-delay: .18s }
-  .journey > :nth-child(4) { animation-delay: .27s }
-  .journey > :nth-child(5) { animation-delay: .36s }
-  @keyframes jstep { from { opacity: 0; transform: translateY(7px) } }
+  /* ---- the explanation, drawn as the structure it describes ---------------
+     Four acts hanging off ONE rail, so the panel reads as a single sequence
+     rather than four boxes that happen to be stacked. The rail is not
+     decoration: it is the claim that these things happened in this order. */
+  .acts { padding: var(--s2) 0 0; }
+  /* The acts arrive as a sequence, each settling after the one it follows from,
+     so the panel reads as cause and effect rather than as four regions that
+     happened to be stacked. */
+  .act { animation: settle .34s cubic-bezier(.2,.7,.3,1) backwards; }
+  .act:nth-child(2) { animation-delay: .09s }
+  .act:nth-child(3) { animation-delay: .18s }
+  .act:nth-child(4) { animation-delay: .27s }
+  @keyframes settle { from { opacity: 0; transform: translateY(7px) } }
   /* Decorative motion is dropped wholesale; the spinners and the typing dots
      are the only signal that work is in flight, so they stay — the dots lose
      their travel and pulse in place instead. */
   @media (prefers-reduced-motion: reduce) {
-    .journey > *, .explain, .scrim, .meter.live > i::after { animation: none; }
+    .act, .explain, .scrim, .meter.live > i::after { animation: none; }
     .dots i { animation: blink var(--t-blink) ease-in-out infinite; }
     * { scroll-behavior: auto !important; }
   }
-  /* Inside the panel there is no room for a second outline: a journey node is a
-     well in the surface, the trained note is the one RAISED card, and the answer
-     is the one warm block.  Three roles, told apart by value — not by borders. */
-  .jnode {
-    border: 0; border-radius: var(--r-sm); padding: var(--s3) var(--s4);
-    background: var(--surface-2);
+  .act { position: relative; padding: 0 var(--s4) var(--s5) 52px; }
+  /* The rail runs from under one act's number straight to the next one's, with
+     no break at the boundary — a spine that stops at every joint is not a
+     spine. On the last act it runs most of the way down and stops, so the
+     sequence closes instead of pointing at nothing. */
+  .act::before {
+    content: ""; position: absolute; left: 29px; top: 28px; bottom: 0;
+    width: 1px; background: var(--line);
   }
-  .jnode.ask { background: none; }
-  .jnode.out { background: var(--accent-soft); }
-  .jlabel {
-    font-size: var(--f-xs); font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--ink-faint); margin-bottom: var(--s1); display: flex; align-items: center; gap: var(--s2);
+  .act:last-child::before { bottom: var(--s5); }
+  .act > .no {
+    position: absolute; left: var(--s4); top: 0; width: 26px; height: 26px;
+    border-radius: 50%; display: grid; place-items: center;
+    background: var(--surface-2); color: var(--accent-ink);
+    font-family: var(--font-display); font-size: 13px; font-weight: 600;
   }
-  .jnode.out .jlabel { color: var(--accent); }
-  .jtext { font-size: var(--f-md); line-height: var(--lh-body); overflow-wrap: anywhere; }
-  .jtext.quiet { color: var(--ink-soft); font-style: italic; }
+  .act > h4 { margin: 3px 0 2px; font-size: var(--f-md); font-weight: 650; }
+  .act > .lede {
+    margin: 0 0 var(--s3); font-size: var(--f-sm); color: var(--ink-soft);
+    line-height: var(--lh-snug);
+  }
+  .act > .note-under {
+    margin: var(--s2) 0 0; font-size: var(--f-sm); color: var(--ink-soft);
+    line-height: var(--lh-snug);
+  }
+  @media (max-width: 560px) {
+    .act { padding-left: 42px; padding-right: var(--s3); }
+    .act::before { left: 23px; }
+    .act > .no { left: 10px; }
+  }
 
-  /* the connector between two nodes, carrying the move that happened */
-  .jlink {
-    display: flex; align-items: center; gap: var(--s2); padding: var(--s2) 0 var(--s2) var(--s4);
-    font-size: var(--f-sm); color: var(--ink-soft);
+  /* ---- the asked text, with what it recognised painted onto it ---------- */
+  .pane {
+    background: var(--surface-2); border-radius: var(--r-sm);
+    padding: var(--s3) var(--s4); font-family: var(--font-machine);
+    font-size: var(--f-sm); line-height: 1.95; overflow-wrap: anywhere;
+    max-height: 210px; overflow-y: auto;
   }
-  .jlink .rail { width: 1px; align-self: stretch; background: var(--line); margin-left: 1px; }
-  .jlink .arrow-down { color: var(--accent); flex: none; }
+  /* Three readings, told apart by WEIGHT and underline as well as by colour —
+     a reader who cannot separate the hues still sees three states. */
+  /* The text is cut at EVERY boundary the engine reported, so a run of one
+     reading is many adjacent <mark>s and they have to look like one stretch.
+     Two things would break that, and both are avoided here:
+       · a border-radius notches a gap at every cut;
+       · text-decoration: underline is simply NOT DRAWN over a <mark> holding
+         only a space, so the rule breaks at every word boundary.
+     The fill is a background-COLOR and the rule is a box-shadow (or, for the
+     dashed one, a background-IMAGE), both of which paint the inline box whole —
+     whitespace included. Three readings, told apart by weight and by the style
+     of the rule as well as by colour, so they survive without the hues. */
+  .pane mark { background: none; color: inherit; border-radius: 0; }
+  .pane mark.carried {
+    background-color: var(--accent-soft); color: var(--accent-ink);
+    font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent);
+  }
+  .pane mark.known {
+    background-color: color-mix(in srgb, var(--ink) 7%, transparent);
+    box-shadow: inset 0 -1px 0 var(--ink-faint);
+  }
+  .pane mark.aside {
+    color: var(--ink-faint);
+    background-image: linear-gradient(90deg, currentColor 55%, transparent 55%);
+    background-size: 5px 1px; background-repeat: repeat-x; background-position: 0 100%;
+  }
+  .pane mark.flash { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .key {
+    display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-top: var(--s2);
+    font-size: var(--f-xs); color: var(--ink-faint);
+  }
+  .key span { display: inline-flex; align-items: center; gap: 5px; }
+  /* Each swatch is the pane's own treatment at swatch size — fill and rule
+     both — so the legend teaches the marks that are actually on the page. */
+  .key b {
+    width: 17px; height: 11px; flex: none; border-radius: 2px;
+    outline: 1px solid var(--line); outline-offset: -1px;
+  }
+  .key b.carried {
+    background-color: var(--accent-soft); box-shadow: inset 0 -2px 0 var(--accent);
+  }
+  .key b.known {
+    background-color: color-mix(in srgb, var(--ink) 7%, transparent);
+    box-shadow: inset 0 -1px 0 var(--ink-faint);
+  }
+  .key b.aside {
+    color: var(--ink-faint);
+    background-image: linear-gradient(90deg, currentColor 55%, transparent 55%);
+    background-size: 5px 1px; background-repeat: repeat-x; background-position: 0 100%;
+  }
+  .tally {
+    margin: var(--s3) 0 0; font-size: var(--f-sm); color: var(--ink-soft);
+    line-height: var(--lh-snug);
+  }
+  .caption {
+    margin: var(--s3) 0 0; font-size: var(--f-xs); color: var(--ink-faint);
+    line-height: var(--lh-snug);
+  }
+  .tally b { color: var(--ink); font-weight: 620; font-variant-numeric: tabular-nums; }
+  .pieces { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s3); }
+  .piece {
+    font-family: var(--font-machine); font-size: var(--f-xs); border: 0;
+    padding: 3px var(--s2); border-radius: 6px; background: var(--surface-2);
+    color: var(--ink-soft); cursor: pointer; max-width: 100%;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    transition: box-shadow var(--t-fast);
+  }
+  .piece.more { cursor: default; }
+  /* Pinned: the control stays lit while the words it names stay lit. */
+  .piece[aria-pressed="true"], .anchor[aria-pressed="true"] {
+    box-shadow: inset 0 0 0 2px var(--accent);
+  }
+  .anchor { transition: box-shadow var(--t-fast); }
+  .piece.carried { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .piece.aside { background: none; color: var(--ink-faint); box-shadow: inset 0 0 0 1px var(--line); }
 
-  /* the trained note — the evidence, visually the centrepiece */
-  .note-card {
-    border: 0; border-radius: var(--r-sm); overflow: hidden; background: var(--surface);
-    box-shadow: var(--elev-1);
+  /* ---- the chain, one box per place it stood ----------------------------- */
+  .fnode { border-radius: var(--r-sm); padding: var(--s3) var(--s4); background: var(--surface-2); }
+  /* Your own words are not a stored object, so they are not drawn as a card. */
+  .fnode.asked { background: none; padding: 0; }
+  .fnode.answer { background: var(--accent-soft); }
+  .fnode.agreement {
+    margin-left: 11px; background: var(--surface-2);
+    box-shadow: inset 2px 0 0 var(--accent);
+    border-radius: 0 var(--r-sm) var(--r-sm) 0;
   }
-  .note-card .head {
-    display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4);
-    background: var(--accent-soft); color: var(--accent-ink);
-    font-size: var(--f-xs); letter-spacing: .12em; text-transform: uppercase; font-weight: 600;
+  .fhead {
+    display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1) var(--s2);
+    margin-bottom: var(--s1); font-size: var(--f-xs); font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
   }
-  /* A quotation mark, not a star: this block is QUOTED TEXT. */
-  .note-card .head .q {
-    font-family: var(--font-display); font-size: 20px; line-height: 1; margin-top: -3px;
+  .fhead > span:first-child { white-space: nowrap; }
+  .fnode.answer .fhead { color: var(--accent-ink); }
+  .ftext { font-size: var(--f-md); line-height: var(--lh-body); overflow-wrap: anywhere; }
+  /* A stored note is DATA: quoted in the machine voice, never paraphrased. */
+  .fnode.note .ftext, .fnode.answer .ftext, .fnode.agreement .ftext {
+    font-family: var(--font-machine); font-size: var(--f-sm);
   }
-  /* Same shape as a pair card: label above its text on a phone, two columns
-     from 560px up, so the reader learns the pattern once. */
-  .note-row { padding: var(--s3) var(--s4); font-size: var(--f-md); line-height: var(--lh-body); }
-  .note-row + .note-row { border-top: 1px solid var(--line-soft); }
-  .note-row .k {
-    display: block; width: auto; font-size: var(--f-xs); font-weight: 600; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--s1);
+  .nid {
+    margin-left: auto; flex: none; font-family: var(--font-machine);
+    font-size: var(--f-xs); font-weight: 500; letter-spacing: 0;
+    text-transform: none; color: var(--ink-faint);
   }
-  .note-row .v { min-width: 0; overflow-wrap: anywhere; }
-  .note-row.learnt .v { color: var(--ink); font-weight: 500; }
-  @media (min-width: 560px) {
-    .note-row { display: flex; gap: var(--s3); align-items: baseline; }
-    .note-row .k { flex: none; width: 68px; margin-bottom: 0; }
+  .fnode.answer .nid { color: var(--accent-ink); }
+  /* The tie back to the question: point at this and the words light up. */
+  .anchor {
+    flex: none; border: 0; background: var(--accent-soft); color: var(--accent-ink);
+    border-radius: 99px; padding: 2px var(--s2); cursor: pointer;
+    font: inherit; font-size: 10px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase;
   }
   .exact {
-    display: inline-block; margin-left: var(--s2); font-size: var(--f-xs); font-weight: 500;
-    color: var(--ok-ink); background: var(--ok-soft);
-    border-radius: 99px; padding: 1px var(--s2); white-space: nowrap; vertical-align: 1px;
+    flex: none; font-size: 10px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ok-ink); background: var(--ok-soft);
+    border-radius: 99px; padding: 2px var(--s2);
+  }
+  /* The connector carries the move: the arrow is drawn, not typed, so it reads
+     as one continuous line from the box above to the box below. */
+  .flink {
+    display: grid; grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: var(--s2); padding: var(--s2) 0;
+  }
+  /* The arrow keeps the first column for the WHOLE connector, however many
+     lines it carries; everything else is placed in the second explicitly. Left
+     to auto-placement a third line (the engine's own note, when the auditable
+     layer is on) drops into the 24px arrow column and renders one letter per
+     line. */
+  .flink .glyph { grid-column: 1; grid-row: 1 / -1; color: var(--accent); }
+  .flink > :not(.glyph) { grid-column: 2; min-width: 0; }
+  .flink .move {
+    display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2);
+    font-size: var(--f-sm); font-weight: 650; padding-top: 1px;
+  }
+  .flink .lead {
+    font-size: var(--f-sm); color: var(--ink-soft); line-height: var(--lh-snug);
+    margin-top: 2px;
+  }
+  .cost {
+    font-family: var(--font-machine); font-size: var(--f-xs); font-weight: 500;
+    color: var(--ink-soft); background: var(--surface); border-radius: 99px;
+    padding: 1px 7px;
+  }
+  /* THE CONVERGENCE.  Lines spread across the top of the group and meet one
+     point at the bottom — the mark for "these many became this one". The next
+     arrow leaves from that point, so the funnel and the arrow read as one
+     continuous movement rather than as a list beside a separate arrow. */
+  /* THE OVERLAP.  One left edge, one type size, the shared opening solid and
+     the rest of the note faded: "your text is the start of this note" becomes
+     something you see instead of something the caption claims. */
+  /* THE COMPUTATION.  An equals sign and a value, with no arrow and no box —
+     a silhouette that cannot be confused with a walk between two stored notes,
+     because it is not one. */
+  .equation {
+    display: flex; align-items: baseline; gap: var(--s3);
+    padding: var(--s2) 0 0 var(--s2);
+  }
+  .eqsign {
+    font-family: var(--font-display); font-size: 30px; font-weight: 600;
+    line-height: 1; color: var(--accent);
+  }
+  .eqval {
+    font-family: var(--font-machine); font-size: var(--f-lg); font-weight: 600;
+    color: var(--ink); overflow-wrap: anywhere; min-width: 0;
   }
 
-  /* corroboration */
-  .corrob { margin: var(--s3) var(--s4) var(--s4); }
-  .corrob-head {
-    display: flex; align-items: flex-start; gap: var(--s2); font-size: var(--f-md); line-height: var(--lh-body);
-    color: var(--ink-soft);
+  .ftext.overlap .same { color: var(--ink); font-weight: 600; }
+  .ftext.overlap .rest,
+  .near-row2 .rest { color: var(--ink-faint); }
+  .near-row2 .same {
+    color: var(--ink); font-weight: 600;
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    box-shadow: inset 0 -1px 0 var(--ink-faint);
   }
-  .corrob-head b { color: var(--ink); font-weight: 620; }
-  .corrob-head svg { flex: none; color: var(--ok); margin-top: 2px; }
-  .corrob-more {
-    margin-top: var(--s2); margin-left: var(--s5); display: inline-flex; align-items: center;
-    min-height: var(--tap); background: none; border: 0; padding: 0; cursor: pointer;
-    font: inherit; font-size: var(--f-md); color: var(--accent); text-decoration: underline;
+  .near-row2 {
+    display: flex; align-items: baseline; gap: var(--s3);
+    padding: var(--s2) 0; border-top: 1px solid var(--line-soft);
+  }
+  .near-row2:first-child { border-top: 0; }
+  .near-row2 .nt {
+    flex: 1; min-width: 0; font-family: var(--font-machine); font-size: var(--f-xs);
+    line-height: var(--lh-snug); overflow-wrap: anywhere;
+  }
+  .near-row2 .ns {
+    flex: none; font-family: var(--font-machine); font-size: var(--f-xs);
+    color: var(--ink-faint); font-variant-numeric: tabular-nums;
+  }
+
+  .voters { display: grid; gap: 3px; margin-top: var(--s2); }
+  .voters div {
+    font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
+    background: var(--surface); border-radius: 5px; padding: 3px var(--s2);
+    overflow-wrap: anywhere;
+  }
+  .voters p { margin: 2px 0 0; font-size: var(--f-xs); color: var(--ink-faint); }
+  /* THE FAN.  A gutter on the left holds one drawn line per note; the lines
+     start at their own rows and meet one point at the bottom, where the arrow
+     out of the group begins. "They agree on this" is then a thing you see. */
+  .fan { position: relative; padding-left: 26px; margin-top: var(--s2); }
+  .fanrows { display: grid; gap: 3px; }
+  .fanrows > div {
+    font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
+    background: var(--surface); border-radius: 5px; padding: 3px var(--s2);
+    overflow-wrap: anywhere;
+  }
+  .fanlines {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 26px;
+    color: var(--accent);
+  }
+  .fanlines svg { display: block; width: 100%; height: 100%; }
+  .fanmore {
+    margin: var(--s2) 0 0 26px; font-size: var(--f-xs); color: var(--ink-faint);
+  }
+  .support {
+    display: flex; gap: var(--s2); align-items: flex-start; margin-top: var(--s3);
+    font-size: var(--f-sm); color: var(--ink-soft); line-height: var(--lh-snug);
+  }
+  .support svg { flex: none; color: var(--ok); margin-top: 2px; }
+  .support b { color: var(--ink); font-weight: 620; }
+  .morebtn {
+    display: inline-flex; align-items: center; min-height: var(--tap);
+    background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
+    font-size: var(--f-sm); color: var(--accent); text-decoration: underline;
     text-underline-offset: 3px;
   }
-  .corrob-list { margin: var(--s2) 0 0 var(--s5); display: grid; gap: var(--s1); }
-  .corrob-list div {
-    font-size: var(--f-sm); color: var(--ink-soft); padding: var(--s2) var(--s3); border-radius: var(--r-sm);
-    background: var(--surface-2); overflow-wrap: anywhere;
+
+  /* ---- what it nearly reached (a silence has a shape too) ---------------- */
+  .near { display: grid; gap: var(--s2); }
+  .near-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) 68px 34px;
+    gap: var(--s2); align-items: center;
+  }
+  .near-row .t {
+    font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .near { display: grid; }
+
+  /* ---- the cost ladder ---------------------------------------------------- */
+  .ladder { display: grid; gap: 0; }
+  .rung { padding: var(--s3) 0; }
+  .rung + .rung { border-top: 1px solid var(--line-soft); }
+  .rules { margin: var(--s3) 0 0; display: grid; gap: var(--s2); }
+  .rules p {
+    margin: 0; font-size: var(--f-sm); color: var(--ink-soft);
+    line-height: var(--lh-snug);
+  }
+  .rung .top { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
+  .rung .name { font-size: var(--f-sm); font-weight: 650; }
+  .rung .stat {
+    font-size: var(--f-xs); border-radius: 99px; padding: 1px 7px;
+    background: var(--surface-2); color: var(--ink-soft);
+  }
+  .rung.won .stat { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+  .rung .grade {
+    margin-left: auto; font-family: var(--font-machine); font-size: var(--f-xs);
+    color: var(--ink-faint); font-variant-numeric: tabular-nums;
+  }
+  .rung .gauge {
+    position: relative; height: 6px; border-radius: 99px;
+    background: var(--surface-2); margin-top: var(--s2); overflow: hidden;
+  }
+  .rung .gauge > i {
+    display: block; height: 100%; border-radius: 99px; background: var(--ink-faint);
+  }
+  /* A floor is a POSITION on the scale, not a quantity spent — so it is a mark
+     at that position, never a filled length. */
+  .rung .gauge > i.tick {
+    position: absolute; top: 0; bottom: 0; width: 2px; border-radius: 0;
+    background: var(--ink-faint);
+  }
+  .rung.floor .gauge {
+    background: none; box-shadow: inset 0 0 0 1px var(--line);
+  }
+  .rung.won .gauge > i { background: var(--accent); }
+  .rung .lead {
+    margin: var(--s2) 0 0; font-size: var(--f-sm); color: var(--ink-soft);
+    line-height: var(--lh-snug);
   }
 
-  .stages { padding: var(--s1) 0; }
-  details.stage { border-bottom: 1px solid var(--line-soft); }
-  details.stage:last-child { border-bottom: 0; }
-  details.stage > summary {
-    display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3) var(--s4);
-    cursor: pointer; list-style: none; user-select: none; transition: background var(--t-fast);
+  /* ---- the trace, in the engine's own nesting ---------------------------- */
+  .tree-key {
+    display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); margin-bottom: var(--s2);
+    font-size: var(--f-xs); color: var(--ink-faint);
   }
-  details.stage > summary::-webkit-details-marker { display: none }
-  details.stage > summary:hover { background: var(--surface-2); }
-  .badge {
-    flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft);
-    color: var(--accent); display: grid; place-items: center;
+  .tree-key span { display: inline-flex; align-items: center; gap: 5px; }
+  .tree {
+    max-height: 420px; overflow: auto; overscroll-behavior: contain;
+    border-radius: var(--r-sm); background: var(--surface-2);
   }
-  .badge span { font-family: var(--font-display); font-size: 15px; font-weight: 600; line-height: 1; }
-  .st-txt { flex: 1; min-width: 0; }
-  .st-txt h4 { margin: 0 0 2px; font-size: var(--f-md); font-weight: 620; display: flex; align-items: center; gap: var(--s2); }
-  .st-txt p { margin: 0; font-size: var(--f-sm); color: var(--ink-soft); line-height: var(--lh-snug); }
-  .n { font-size: var(--f-xs); color: var(--ink-faint); font-weight: 500; white-space: nowrap; }
-  .st-chev { flex: none; color: var(--ink-faint); margin-top: var(--s1); transition: transform var(--t-med); }
-  details.stage[open] .st-chev { transform: rotate(180deg); }
-  .st-body { padding: 0 var(--s4) var(--s4) 56px; }
-  @media (max-width: 560px) { .st-body { padding-left: var(--s4); } }
-  .step { border-top: 1px solid var(--line-soft); padding: var(--s2) 0; font-size: var(--f-sm); }
-  .step:first-child { border-top: 0; }
-  .step .lab { font-weight: 600; display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; }
-  .step .count {
-    font-weight: 500; font-size: var(--f-xs); color: var(--accent-ink);
-    background: var(--accent-soft); border-radius: 99px; padding: 1px 7px;
+  /* The key has to stay beside the rows it explains, not scroll off the top of
+     four hundred pixels of tree. */
+  .tree .tree-key {
+    position: sticky; top: 0; z-index: 1; margin: 0;
+    padding: var(--s2) var(--s3); background: var(--surface-2);
+    border-bottom: 1px solid var(--line-soft);
   }
-  .step .note { color: var(--ink-soft); margin-top: 2px; font-size: var(--f-sm); line-height: var(--lh-snug); }
-  .io { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s2); align-items: center; }
-  .chip {
-    background: var(--surface-2); border: 0; border-radius: 6px;
-    padding: 2px var(--s2); font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
-    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .trow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: var(--s2); padding: 5px var(--s3); }
+  .trow + .trow { border-top: 1px solid var(--line-soft); }
+  .trow .ix {
+    font-family: var(--font-machine); font-size: 10px; color: var(--ink-faint);
+    text-align: right; padding-top: 4px; font-variant-numeric: tabular-nums;
   }
-  .chip.out { color: var(--ink); background: var(--accent-soft); }
-  .arrow { color: var(--ink-faint); font-size: var(--f-xs); }
+  .trow .body { min-width: 0; }
+  .trow .nm { display: flex; align-items: center; gap: var(--s2); font-size: var(--f-sm); }
+  .trow .nm .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow .plain { font-size: var(--f-xs); color: var(--ink-soft); line-height: var(--lh-snug); }
+  /* Five families, and three of the five hues that survive both themes are
+     warm browns — indistinguishable at 7px, and worse for a reader who cannot
+     separate them at all. The SHAPE carries the category and the hue only
+     confirms it: square, ring, disc, diamond, disc, with the two discs far
+     apart in hue. */
+  .dotf { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .dotf.read { border-radius: 1px; background: var(--ink-faint); }
+  .dotf.recall { background: none; box-shadow: inset 0 0 0 2px var(--cool); }
+  .dotf.walk { background: var(--accent); }
+  .dotf.weigh { border-radius: 1px; background: var(--warn); transform: rotate(45deg); }
+  .dotf.speak { background: var(--ok); }
+  .trow .rep {
+    flex: none; font-size: 10px; font-weight: 600; color: var(--accent-ink);
+    background: var(--accent-soft); border-radius: 99px; padding: 0 6px;
+  }
+  .trow .dep {
+    flex: none; margin-left: auto; font-family: var(--font-machine);
+    font-size: 10px; color: var(--ink-faint);
+  }
+  .trow .io {
+    display: flex; align-items: center; gap: 5px; margin-top: 3px;
+    font-family: var(--font-machine); font-size: 10px; color: var(--ink-faint);
+    min-width: 0;
+  }
+  .trow .io span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .trow .io span.to { color: var(--accent-ink); }
 
   details.more { border-top: 1px solid var(--line); }
   details.more > summary {
-    display: flex; align-items: center; min-height: var(--tap); padding: var(--s3) var(--s4);
-    cursor: pointer; font-size: var(--f-md); color: var(--ink-soft);
-    list-style: none; user-select: none;
+    display: flex; align-items: center; min-height: var(--tap);
+    padding: var(--s3) var(--s4); cursor: pointer; list-style: none;
+    user-select: none; font-size: var(--f-sm); font-weight: 600;
+    color: var(--ink-soft);
   }
-  details.more > summary::-webkit-details-marker { display: none }
-  details.more > summary:hover { color: var(--accent); }
-  details.more .inner { padding: 0 var(--s4) var(--s4); font-size: var(--f-md); color: var(--ink-soft); }
+  details.more > summary::-webkit-details-marker { display: none; }
+  details.more > summary::before {
+    content: ""; flex: none; width: 0; height: 0; margin-right: var(--s2);
+    border: 4px solid transparent; border-left-color: currentColor;
+    transition: transform var(--t-med);
+  }
+  details.more[open] > summary::before { transform: rotate(90deg) translateX(-2px); }
+  details.more > summary:hover { color: var(--accent-ink); }
+  details.more .inner {
+    padding: 0 var(--s4) var(--s4); font-size: var(--f-sm); color: var(--ink-soft);
+  }
+  details.more .inner > p { margin: 0 0 var(--s3); line-height: var(--lh-snug); }
+
+  /* A disclosure that belongs to an act, not to the panel: it carries the act's
+     own indent and none of the appendix chrome. */
+  details.inline { margin-top: var(--s3); }
+  details.inline > summary {
+    display: inline-flex; align-items: center; gap: var(--s2);
+    min-height: 34px; cursor: pointer; list-style: none; user-select: none;
+    font-size: var(--f-sm); font-weight: 600; color: var(--accent-ink);
+  }
+  details.inline > summary::-webkit-details-marker { display: none; }
+  details.inline > summary::before {
+    content: ""; flex: none; width: 0; height: 0;
+    border: 4px solid transparent; border-left-color: currentColor;
+    transition: transform var(--t-med);
+  }
+  details.inline[open] > summary::before { transform: rotate(90deg) translateX(-2px); }
+  details.inline > summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .inline-body { padding-top: var(--s2); }
+
   .rej { padding: var(--s2) 0; border-top: 1px solid var(--line-soft); line-height: var(--lh-snug); font-size: var(--f-sm); }
+  .rej:first-child { border-top: 0; }
   .rej b { color: var(--ink); font-weight: 600; display: block; }
   .rej-raw {
     margin-top: 3px; font-size: var(--f-xs); color: var(--ink-faint);
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.45;
+    font-family: var(--font-machine); line-height: 1.45; overflow-wrap: anywhere;
   }
   .flag {
     display: flex; gap: var(--s2); align-items: flex-start; margin: 0 var(--s4) var(--s4); padding: var(--s3);
     border-radius: var(--r-sm); font-size: var(--f-sm); line-height: var(--lh-snug);
     background: color-mix(in srgb, var(--warn) 11%, transparent); border: 0;
   }
+  .flag svg { flex: none; color: var(--warn); margin-top: 2px; }
 
   /* On a phone the explanation comes up as a SHEET from the bottom edge: full
      width, its own scroll, a way out always in reach — instead of a panel that
@@ -661,6 +963,13 @@ export const HTML = `<!doctype html>
      the boundary needs no script, only these two rules. */
   .scrim { display: none; }
   .sheet-bar { display: none; }
+  /* On a phone the panel is already a sheet that scrolls inside itself, and a
+     scroller nested in a disclosure nested in that sheet is a trap: the trace
+     ends up behind an inner scrollbar two levels down. Let them grow. */
+  @media (max-width: 560px) {
+    .pane, .tree { max-height: none; }
+    .tree .tree-key { position: static; }
+  }
   @media (max-width: 560px) {
     .scrim {
       display: block; position: fixed; inset: 0; z-index: 20;
@@ -1166,6 +1475,9 @@ export const HTML = `<!doctype html>
     return n + ' ' + (n === 1 ? one : (many || one + 's'));
   }
 
+  /** Sentence case for a phrase used as a heading. */
+  function upper(t) { return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; }
+
   /** Loose comparison, so punctuation or spacing differences do not hide a
    *  match that is plainly the same sentence to a reader. */
   function norm(t) {
@@ -1181,64 +1493,149 @@ export const HTML = `<!doctype html>
     'recall-echo': 'echo, not a derived fact'
   };
 
-  /** One box in the journey: a small caption over a passage of text. */
-  function jnode(cls, label, text) {
-    var n = el('div', 'jnode ' + cls);
-    n.appendChild(el('div', 'jlabel', label));
-    var jt = el('div', 'jtext', text);
-    jt.dir = 'auto';
-    n.appendChild(jt);
-    return n;
+  /** One act of the explanation: a number on the rail, a title, a line of
+   *  orientation, and then the concrete material the act is ABOUT. */
+  function act(n, title, lede) {
+    var a = el('div', 'act');
+    a.appendChild(el('div', 'no', String(n)));
+    a.appendChild(el('h4', null, title));
+    if (lede) a.appendChild(el('p', 'lede', lede));
+    return a;
   }
 
-  /** The connector between two boxes, carrying what happened in between. */
-  function jlink(text) {
-    var l = el('div', 'jlink');
-    var a = el('span', 'arrow-down');
-    a.innerHTML = svg('<path d="M12 5v14M6 13l6 6 6-6"/>', 13);
-    l.appendChild(a);
-    l.appendChild(el('span', null, text));
+  /** A box in the chain. Its kind is what this place IS — your words, a stored
+   *  note, several notes agreeing, the answer — and the box is drawn
+   *  differently for each, because they are not the same kind of thing. */
+  function fnode(kind, title) {
+    var n = el('div', 'fnode ' + kind);
+    var h = el('div', 'fhead');
+    h.appendChild(el('span', null, title));
+    n.appendChild(h);
+    return { box: n, head: h };
+  }
+
+  /** The connector between two boxes: a drawn arrow on the left, the move it
+   *  made beside it, and one sentence on why that move is the one that carried
+   *  the answer. */
+  function flink(link, headline) {
+    var l = el('div', 'flink');
+    var g = el('div', 'glyph');
+    g.innerHTML = '<svg width="24" height="30" viewBox="0 0 24 30" fill="none" ' +
+      'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" ' +
+      'stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M12 1v22"/><path d="M6 17l6 6 6-6"/></svg>';
+    l.appendChild(g);
+    var m = el('div', 'move');
+    // The panel's one-line verdict is often this very move, word for word, and
+    // printing it again directly beneath is a restatement rather than a second
+    // fact. When that happens the arrow carries the REASON in the strong
+    // position instead — one line, not two saying the same thing.
+    var said = headline && link.label &&
+      headline.toLowerCase().indexOf(link.label.toLowerCase()) >= 0;
+    var lead = said && link.plain ? null : link.plain;
+    m.appendChild(document.createTextNode(
+      said && link.plain ? link.plain : link.label));
+    if (link.cost != null) {
+      var c = el('span', 'cost', 'cost ' + link.cost);
+      c.title = 'What this move cost on the engine\\'s one scale. Lower is cheaper. ' +
+        'It is a cost, never a confidence.';
+      m.appendChild(c);
+    }
+    l.appendChild(m);
+    if (lead) l.appendChild(el('div', 'lead', lead));
+    // The engine's own wording for this hop, kept underneath and shown on
+    // request: a plain reading must never cost the reader the auditable one.
+    if (link.note) l.appendChild(el('div', 'enote', link.note));
     return l;
+  }
+
+  /** How strong a reading is: a stretch that carries the answer outranks one
+   *  that is merely known, which outranks one that answers something else. */
+  var rank = { aside: 0, known: 1, carried: 2 };
+
+  /** THE CONVERGENCE, as a drawing.  One line per note spread across the top,
+   *  all meeting one point at the bottom — the mark for "these many became
+   *  this one". It is the only visual event in an answer that rests on
+   *  agreement, and a bracket down the side of a list does not show it.
+   *
+   *  The viewBox is stretched to the element's real width, so the lines fan
+   *  across whatever space the group occupies, while a non-scaling stroke keeps
+   *  them hairlines as they stretch. No measurement, no layout dependency. */
+  function funnel(n) {
+    // The viewBox is n units tall and the SVG is stretched over exactly the n
+    // rows, so unit i + 0.5 lands on row i's centre whatever the type size or
+    // the viewport does. Each line starts at its own row's left edge and ends
+    // at one point in the bottom-left corner — the point the next arrow leaves
+    // from. No measurement, no layout dependency, and it is the rows that
+    // converge rather than a decoration under them.
+    var W = 26, paths = '';
+    for (var i = 0; i < n; i++) {
+      var y = (i + 0.5).toFixed(2);
+      paths += '<path d="M' + W + ' ' + y + ' C' + (W * 0.3) + ' ' + y +
+        ', 3 ' + ((i + n) / 2).toFixed(2) + ', 3 ' + n + '"' +
+        ' vector-effect="non-scaling-stroke"/>';
+    }
+    var d = el('div', 'fanlines');
+    d.setAttribute('aria-hidden', 'true');
+    d.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + n + '" preserveAspectRatio="none" ' +
+      'fill="none" stroke="currentColor" stroke-width="1.1">' + paths + '</svg>';
+    return d;
+  }
+
+  /** The longest stretch the second string shares with the first, as a
+   *  [start, end) range into the second.
+   *  Used to show a near miss against your own words: what it has in common
+   *  solid, what it does not faded. The strings here are one short line each,
+   *  so the straightforward table is the right amount of machinery. */
+  function sharedRun(a, b) {
+    a = (a || '').toUpperCase(); b = (b || '').toUpperCase();
+    if (!a || !b) return null;
+    var prev = new Array(a.length + 1).fill(0), best = 0, end = 0;
+    for (var j = 1; j <= b.length; j++) {
+      var cur = new Array(a.length + 1).fill(0);
+      for (var i = 1; i <= a.length; i++) {
+        if (b[j - 1] === a[i - 1]) {
+          cur[i] = prev[i - 1] + 1;
+          if (cur[i] > best) { best = cur[i]; end = j; }
+        }
+      }
+      prev = cur;
+    }
+    return best >= 3 ? [end - best, end] : null;
   }
 
   function renderExplanation(x) {
     var root = el('div', 'explain');
+    var silent = x.outcome === 'silent';
 
-    // Silence is a result, not a failure — and it needs its own framing, since
-    // "how it reached this answer" describes nothing when there is no answer.
-    var silent = !x.answer;
-
+    /* ── the verdict ─────────────────────────────────────────────────── */
     var top = el('div', 'ex-top');
-    top.appendChild(el('h3', null, silent ? 'Why Sema stayed silent' : 'How Sema reached this answer'));
-    top.appendChild(el('p', null, silent
-      ? 'It tried every way it knows to back an answer up, and nothing it holds supported one, ' +
-        'so it said nothing. Below is what it attempted, and why each attempt came up empty.'
-      : x.headline + (x.evidence
-        ? ' Below is the actual note it used — not a description of it.'
-        : '')));
+    top.appendChild(el('h3', null, silent
+      ? 'Why Sema stayed silent'
+      : 'How Sema reached this answer'));
+    top.appendChild(el('p', null, x.headline));
 
     var tags = el('div', 'tags');
-    tags.appendChild(el('span', 'tagx', plural(x.stepCount, 'reasoning step')));
-    if (x.considered && x.considered.length) {
-      tags.appendChild(el('span', 'tagx', plural(x.considered.length, 'approach', 'approaches') + ' rejected'));
-    }
+    var hops = x.chain.links.filter(function (l) { return l.move !== 'recognise'; }).length;
+    if (!silent && hops) tags.appendChild(el('span', 'tagx', plural(hops, 'move')));
+    // The step count and the milliseconds used to sit here, where "1 move"
+    // beside "159 steps in all" reads as the panel contradicting itself. Both
+    // now live on the trace disclosure, next to the thing they count.
+    if (x.tookMs != null) tags.appendChild(el('span', 'tagx enote', x.tookMs + ' ms'));
     if (x.provenance && PROVENANCE[x.provenance]) {
       tags.appendChild(el('span', 'tagx' + (x.provenance === 'recall-echo' ? ' warn' : ''),
         PROVENANCE[x.provenance]));
     }
     top.appendChild(tags);
 
-    // Sema's own notes and the spans each step consumed are the auditable
-    // record, and they have to stay reachable — but printed inline they put a
-    // cost float on every row, and the plain reading above each one already
-    // says what happened. One switch, off by default, for the whole panel.
+    // Sema's own notes are the auditable record and have to stay reachable, but
+    // printed inline they put a cost float on every row. One switch, off by
+    // default, for the whole panel.
     var tech = el('button', 'techbtn');
     var techOn = false;
     function paintTech() {
       root.className = 'explain' + (techOn ? ' tech' : '');
-      tech.textContent = techOn
-        ? 'Hide Sema\\'s own notes'
-        : 'Show Sema\\'s own notes';
+      tech.textContent = techOn ? 'Hide Sema\\'s own notes' : 'Show Sema\\'s own notes';
       tech.setAttribute('aria-pressed', techOn ? 'true' : 'false');
     }
     tech.onclick = function () { techOn = !techOn; paintTech(); };
@@ -1246,209 +1643,579 @@ export const HTML = `<!doctype html>
     root.appendChild(top);
     paintTech();
 
-    // ── The journey: your words, the stored note, the answer ──────────────
-    if (!silent) {
-      var j = el('div', 'journey');
-      j.appendChild(jnode('ask', 'You asked', x.question));
+    var acts = el('div', 'acts');
+    root.appendChild(acts);
 
-      if (x.evidence) {
-        j.appendChild(jlink('Sema recognised this as something it had been taught'));
+    /* ── the acts, numbered as they are built ────────────────────────── */
+    var actNo = 0;
+    var r = x.reading;
 
-        var card = el('div', 'note-card');
-        var head = el('div', 'head');
-        head.appendChild(el('span', 'q', '“'));
-        head.appendChild(el('span', null, 'The note it had been taught'));
-        card.appendChild(head);
-
-        var r1 = el('div', 'note-row');
-        r1.appendChild(el('div', 'k', 'Given'));
-        var v1 = el('div', 'v');
-        v1.dir = 'auto';
-        v1.appendChild(document.createTextNode(x.evidence.context));
-        // When the stored note repeats your sentence word for word, say so —
-        // otherwise the reader just sees the same text three times and wonders
-        // whether something is broken.
-        if (norm(x.evidence.context) === norm(x.question)) {
-          v1.appendChild(el('span', 'exact', 'word-for-word what you asked'));
-        }
-        r1.appendChild(v1);
-        card.appendChild(r1);
-
-        var r2 = el('div', 'note-row learnt');
-        r2.appendChild(el('div', 'k', 'It learnt'));
-        var rv = el('div', 'v', x.evidence.continuation);
-        rv.dir = 'auto';
-        r2.appendChild(rv);
-        card.appendChild(r2);
-        j.appendChild(card);
-
-        j.appendChild(jlink('and voiced it back in your own wording'));
-      } else {
-        j.appendChild(jlink(x.headline.replace(/^It /, 'It ').replace(/\.$/, '')));
-      }
-
-      j.appendChild(jnode('out', 'The answer', x.answer));
-      root.appendChild(j);
-    }
-
-    // ── Corroboration: the same answer, reached from many other notes ─────
-    if (x.corroboration && x.corroboration.total > 1) {
-      var c = el('div', 'corrob');
-      var ch = el('div', 'corrob-head');
-      ch.innerHTML = svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5L16 9.5"/>', 15);
-      var ct = el('div');
-      ct.appendChild(el('b', null, group(x.corroboration.total) + ' different stored notes '));
-      ct.appendChild(document.createTextNode(
-        'lead to this same answer, so it does not rest on a single note.'));
-      ch.appendChild(ct);
-      c.appendChild(ch);
-
-      if (x.corroboration.samples.length) {
-        var more = el('button', 'corrob-more', 'Show a few of them');
-        var list = null;
-        more.onclick = function () {
-          if (list) { list.remove(); list = null; more.textContent = 'Show a few of them'; return; }
-          list = el('div', 'corrob-list');
-          x.corroboration.samples.forEach(function (t) {
-            var row = el('div', null, t); row.dir = 'auto'; list.appendChild(row);
-          });
-          c.appendChild(list);
-          more.textContent = 'Hide them';
-        };
-        c.appendChild(more);
-      }
-      root.appendChild(c);
-    }
-
-    var wrapS = el('div', 'stages');
-    x.stages.forEach(function (stage, si) {
-      var det = el('details', 'stage');
-      var sum = document.createElement('summary');
-
-      var badge = el('div', 'badge');
-      // The stages are an ORDER, so the mark is its number — a set of five
-      // generic glyphs only said "icons were available".
-      badge.appendChild(el('span', null, String(si + 1)));
-      sum.appendChild(badge);
-
-      var txt = el('div', 'st-txt');
-      var h = el('h4');
-      h.appendChild(document.createTextNode(stage.title));
-      // Rows are merged by mechanism, so counting rows would report 3 where the
-      // panel header says 443. Count the steps that actually ran.
-      var ran = stage.steps.reduce(function (n, s) { return n + s.repeat; }, 0);
-      h.appendChild(el('span', 'n', plural(ran, 'step')));
-      txt.appendChild(h);
-      // The closing stage's description assumes a winning answer exists; with
-      // nothing grounded that sentence would simply be untrue.
-      txt.appendChild(el('p', null, silent && stage.key === 'answer'
-        ? 'Nothing came through, so there was no answer to give back.'
-        : stage.plain));
-      sum.appendChild(txt);
-
-      var ch = el('span', 'st-chev');
-      ch.innerHTML = svg(CHEV, 13);
-      sum.appendChild(ch);
-      det.appendChild(sum);
-
-      var body = el('div', 'st-body');
-      stage.steps.forEach(function (s) {
-        var step = el('div', 'step');
-        var lab = el('div', 'lab');
-        lab.appendChild(document.createTextNode(s.label));
-        if (s.repeat > 1) {
-          var c = el('span', 'count', '×' + s.repeat);
-          c.title = 'ran ' + s.repeat + ' times, over different parts of your question';
-          lab.appendChild(c);
-        }
-        step.appendChild(lab);
-        // Plain reading first; Sema's own note kept underneath in mono, exactly
-        // as the rejections below do it, so the two never get confused for each
-        // other and the auditable wording is never lost.
-        if (s.plain) step.appendChild(el('div', 'note', s.plain));
-        else if (s.note) step.appendChild(el('div', 'note', s.note));
-        if (s.plain && s.note) step.appendChild(el('div', 'rej-raw', s.note));
-
-        var ins = (s.inputs || []).slice(0, 2);
-        var outs = (s.outputs || []).slice(0, 2);
-        // Identical in and out is a no-op worth stating once, not twice.
-        var same = ins.length === outs.length && ins.every(function (v, i) { return v === outs[i]; });
-        if (ins.length || outs.length) {
-          var io = el('div', 'io');
-          ins.forEach(function (t) {
-            var c = el('span', 'chip', short(t)); c.title = t; c.tabIndex = 0; io.appendChild(c);
-          });
-          if (!same && ins.length && outs.length) io.appendChild(el('span', 'arrow', '→'));
-          if (!same) {
-            outs.forEach(function (t) {
-              var c = el('span', 'chip out', short(t)); c.title = t; c.tabIndex = 0; io.appendChild(c);
-            });
-          }
-          step.appendChild(io);
-        }
-        body.appendChild(step);
+    // THE PAINTED QUESTION.  Built once and placed wherever the story needs
+    // it: inside the chain's first box when there is a chain, standing alone
+    // when there is not. It used to be printed twice — once as an act of its
+    // own and again as the chain's opening box, two hundred pixels apart and
+    // identical — which told the reader that reading and walking are two
+    // different places. They are one place.
+    var cuts = {};
+    cuts[0] = 1; cuts[r.text.length] = 1;
+    r.pieces.forEach(function (p) { cuts[p.a] = 1; cuts[p.b] = 1; });
+    var edges = Object.keys(cuts).map(Number).sort(function (a, b) { return a - b; });
+    var pane = el('div', 'pane');
+    pane.dir = 'auto';
+    for (var i = 0; i < edges.length - 1; i++) {
+      var lo = edges[i], hi = edges[i + 1];
+      if (hi <= lo) continue;
+      var kind = null;
+      r.pieces.forEach(function (p) {
+        if (p.a <= lo && p.b >= hi && (kind === null || rank[p.kind] > rank[kind])) kind = p.kind;
       });
-      det.appendChild(body);
-      wrapS.appendChild(det);
-    });
-    // The five stages are the machinery behind the journey above — real detail,
-    // but detail. Open by default only when there is no journey to show.
-    var stagesDet = el('details', 'more');
-    if (silent) stagesDet.open = true;
-    stagesDet.appendChild(el('summary', null,
-      'Step by step — ' + plural(x.stages.length, 'stage') + ', ' +
-        plural(x.stepCount, 'step') + ' in all'));
-    var stagesInner = el('div');
-    // One legend, once — rather than a tooltip on each badge that a reader has
-    // to discover by hovering (and cannot discover at all on a phone).
-    if (x.stages.some(function (s) { return s.steps.some(function (t) { return t.repeat > 1; }); })) {
-      stagesInner.appendChild(el('p', 'legend',
-        'Steps of the same kind are grouped together. ×24 means that step ran ' +
-        '24 times, over different parts of your question.'));
+      var slice = r.text.slice(lo, hi);
+      if (kind === null) { pane.appendChild(document.createTextNode(slice)); continue; }
+      var mk = el('mark', kind, slice);
+      mk.dataset.a = String(lo);
+      mk.dataset.b = String(hi);
+      pane.appendChild(mk);
     }
-    stagesInner.appendChild(wrapS);
-    stagesDet.appendChild(stagesInner);
-    root.appendChild(stagesDet);
 
-    if (x.closeCall) {
+    /** Light up every segment of the painted question inside [a, b) — the
+     *  relation between a box further down and the words it came from. */
+    function flash(a, b, on) {
+      pane.querySelectorAll('mark').forEach(function (m) {
+        if (Number(m.dataset.a) >= a && Number(m.dataset.b) <= b) {
+          m.classList.toggle('flash', on);
+        }
+      });
+      if (on) {
+        var first = pane.querySelector('mark.flash');
+        if (first && first.scrollIntoView) {
+          first.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        }
+      }
+    }
+    /** Wire a control to the words it stands for. Pointing lights them;
+     *  CLICKING pins them, because a phone has no hover and without the pin
+     *  the one relation this panel exists to show would be unreachable there. */
+    function linkFlash(node, ranges) {
+      var pinned = false;
+      function set(on) { ranges.forEach(function (rg) { flash(rg[0], rg[1], on); }); }
+      node.onmouseenter = function () { if (!pinned) set(true); };
+      node.onmouseleave = function () { if (!pinned) set(false); };
+      node.onfocus = function () { if (!pinned) set(true); };
+      node.onblur = function () { if (!pinned) set(false); };
+      node.onclick = function () {
+        pinned = !pinned;
+        set(pinned);
+        node.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+      };
+      node.setAttribute('aria-pressed', 'false');
+    }
+
+    /** The forensic detail about the reading: real, auditable, and not the
+     *  derivation. It used to open the panel — ~350px of counts ending in a
+     *  sentence admitting the answer came from somewhere else — and readers
+     *  stopped there, before any arrow. It is one line away now. */
+    function recognitionDetail() {
+      var d = el('details', 'inline');
+      d.appendChild(el('summary', null, r.covered > 0
+        ? 'What it recognised in your text'
+        : 'It recognised none of your text'));
+      var body = el('div', 'inline-body');
+      if (r.covered > 0) {
+        var tally = el('p', 'tally');
+        tally.innerHTML =
+          (r.leaves ? 'It cut your text into <b>' + r.leaves + '</b> pieces and found <b>' +
+            r.forms + '</b> of them in memory. ' : '') +
+          'Between them they span <b>' + r.covered + '</b> of its <b>' + r.text.length +
+          '</b> characters.';
+        body.appendChild(tally);
+      }
+      if (r.fromThread) {
+        body.appendChild(el('p', 'note-under',
+          'This is more than you just typed: Sema is handed the whole thread, so ' +
+          'earlier turns are part of what it read — which is why a long conversation drifts.'));
+      }
+      if (r.leftoverBytes && r.covered > 0) {
+        body.appendChild(el('p', 'note-under',
+          'Spanned is not the same as accounted for: going back over your text piece ' +
+          'by piece it could not account for ' + plural(r.leftoverBytes, 'byte') +
+          ' on their own' + (r.leftover ? ' — “' + r.leftover.join('”, “') + '”' : '') +
+          '. They sit inside wording that matched as a whole.'));
+      }
+      if (r.pieces.length) {
+        var byText = {}, order = [];
+        r.pieces.forEach(function (p) {
+          var t = p.text.trim() || p.text;
+          var k = p.kind + '\u0000' + t;
+          if (!byText[k]) { byText[k] = { text: t, kind: p.kind, node: p.node, at: [] }; order.push(k); }
+          byText[k].at.push([p.a, p.b]);
+        });
+        var groups = order.map(function (k) { return byText[k]; })
+          .sort(function (a, b) {
+            return (rank[b.kind] - rank[a.kind]) || (b.text.length - a.text.length);
+          });
+        var key = el('div', 'key');
+        [['carried', 'carried the answer'],
+         ['known', 'wording it holds'],
+         ['aside', 'holds it, but it answers something else']].forEach(function (k) {
+          if (!groups.some(function (g) { return g.kind === k[0]; })) return;
+          var sp = el('span');
+          sp.appendChild(el('b', k[0]));
+          sp.appendChild(document.createTextNode(k[1]));
+          key.appendChild(sp);
+        });
+        body.appendChild(key);
+        body.appendChild(el('p', 'caption',
+          'Sema cuts your text at its own boundaries, so these overlap — ' +
+          (window.matchMedia('(hover: none)').matches ? 'tap' : 'point at') +
+          ' one to find it above.'));
+        var pieces = el('div', 'pieces');
+        groups.slice(0, 14).forEach(function (g) {
+          var c = el('button', 'piece ' + g.kind,
+            short(g.text) + (g.at.length > 1 ? ' ×' + g.at.length : ''));
+          c.type = 'button';
+          c.dir = 'auto';
+          c.title = g.text + (g.node != null ? '  ·  note #' + g.node : '');
+          c.setAttribute('aria-label',
+            'Show where “' + g.text + '” appears in your text');
+          linkFlash(c, g.at);
+          pieces.appendChild(c);
+        });
+        if (groups.length > 14) {
+          pieces.appendChild(el('span', 'piece aside more', '+' + (groups.length - 14) + ' more'));
+        }
+        body.appendChild(pieces);
+      }
+      if (r.note) body.appendChild(el('div', 'enote', 'recognise · ' + r.note));
+      d.appendChild(body);
+      return d;
+    }
+
+    /* ── the flow, which leads, because it is what was asked ─────────── */
+    if (x.chain.nodes.length) {
+      var a2 = act(++actNo, 'Where the answer came from',
+        'Every box is a real place in its memory, read back word for word; every ' +
+        'arrow is a move it actually made. Nothing below was invented — it is all ' +
+        'notes Sema was given.');
+
+      var nodes = x.chain.nodes, links = x.chain.links;
+      // When the stored note is your sentence word for word, "your words" and
+      // "the note" are ONE place; two boxes with an arrow between them would
+      // spend half the picture on a move that did not happen.
+      if (
+        nodes.length > 2 && nodes[0].kind === 'asked' && nodes[1].kind === 'note' &&
+        nodes[1].exact && links[0] && links[0].move === 'recognise'
+      ) {
+        nodes = nodes.slice(1);
+        links = links.slice(1);
+        nodes[0] = Object.assign({}, nodes[0], {
+          kind: 'asked',
+          title: 'What you asked — already in memory, word for word',
+          exact: false,
+        });
+      }
+
+      if (x.chain.truncated) {
+        a2.appendChild(el('p', 'note-under',
+          'The walk ran longer than this. What follows starts part-way along it; ' +
+          'the complete sequence is in the trace at the foot of this panel.'));
+      }
+
+      // THE OVERLAP, DRAWN.  When the answer came by completing a phrase, the
+      // whole mechanism is "your text is the opening of that note" — and two
+      // unaligned boxes assert it without showing it. Align them on one left
+      // edge, keep the shared run solid and ghost the rest, and the relation
+      // is the picture rather than the caption under it.
+      var overlapAt = -1;
+      if (nodes.length >= 2 && nodes[0].kind === 'asked' && nodes[1].kind === 'note') {
+        var mine = (nodes[0].text || ''), theirs = (nodes[1].text || '');
+        var n = 0;
+        while (n < mine.length && n < theirs.length && mine[n] === theirs[n]) n++;
+        // Worth drawing only when the shared opening is most of what you typed.
+        if (n >= 4 && n >= mine.length * 0.6 && theirs.length > n) overlapAt = n;
+      }
+
+      nodes.forEach(function (n, i) {
+        // ARITHMETIC IS NOT A WALK.  A computed answer exists in no note at
+        // all, and drawing it as box-arrow-box made it identical to an answer
+        // that followed a learnt connection — the same silhouette for the two
+        // most different things the engine does. It gets an equals sign.
+        if (i && links[i - 1].move === 'evalComputation') {
+          var eq = el('div', 'equation');
+          eq.appendChild(el('span', 'eqsign', '='));
+          var eqv = el('div', 'eqval', n.text);
+          eqv.dir = 'auto';
+          eq.appendChild(eqv);
+          a2.appendChild(eq);
+          a2.appendChild(el('p', 'caption',
+            'Worked out, not looked up. This answer is in none of its notes, which ' +
+            'is why it is exact and why it can be right about a sum it was never taught.'));
+          return;
+        }
+        if (i) {
+          a2.appendChild(flink(
+            i === 1 && overlapAt > 0
+              ? {
+                move: links[0].move,
+                label: 'your text is how this note begins',
+                plain: 'Everything you typed is the opening of the note above, ' +
+                  'letter for letter. It finished the note the way it was taught.',
+                cost: links[0].cost,
+                note: links[0].note,
+              }
+              : links[i - 1],
+            x.headline,
+          ));
+        }
+        var f = fnode(n.kind, n.title);
+        if (n.node != null) f.head.appendChild(el('span', 'nid', '#' + n.node));
+        if (n.exact) f.head.appendChild(el('span', 'exact', 'word for word'));
+        if (n.spans.length && n.kind !== 'asked') {
+          var anc = el('button', 'anchor', 'from your text');
+          anc.type = 'button';
+          anc.title = 'Show which words of yours this came from';
+          linkFlash(anc, n.spans);
+          f.head.appendChild(anc);
+        }
+        if (i === 0 && n.kind === 'asked') {
+          // The painted question IS the first node. One place, drawn once.
+          f.box.appendChild(pane);
+          if (r.covered > 0) {
+            f.box.appendChild(el('p', 'caption',
+              'Underlined: wording it had seen before.'));
+          } else {
+            f.box.appendChild(el('p', 'caption',
+              'None of this wording appears in what it was taught.'));
+          }
+        } else if (i === 1 && overlapAt > 0) {
+          var ov = el('div', 'ftext overlap');
+          ov.dir = 'auto';
+          ov.appendChild(el('span', 'same', n.text.slice(0, overlapAt)));
+          ov.appendChild(el('span', 'rest', n.text.slice(overlapAt)));
+          f.box.appendChild(ov);
+          f.box.appendChild(el('p', 'caption',
+            'Solid: the part that is your text, letter for letter. Faded: what ' +
+            'the note goes on to say, which you did not type.'));
+        } else if (n.text) {
+          var t = el('div', 'ftext', n.text);
+          t.dir = 'auto';
+          f.box.appendChild(t);
+        }
+        if (n.voters.length) {
+          // THE CONVERGENCE, DRAWN.  "They all agree" is the one visual event
+          // in this shape, and a bracket down the side of a list does not show
+          // many things becoming one. The rows sit in their own wrapper so the
+          // lines can be stretched over exactly them, each starting at its own
+          // row and all ending at one point the next arrow leaves from.
+          var fan = el('div', 'fan');
+          var rows = el('div', 'fanrows');
+          n.voters.forEach(function (v) {
+            var d = el('div', null, v.text);
+            d.dir = 'auto';
+            if (v.node != null) d.title = 'note #' + v.node;
+            rows.appendChild(d);
+          });
+          fan.appendChild(funnel(n.voters.length));
+          fan.appendChild(rows);
+          f.box.appendChild(fan);
+          if (n.voterTotal > n.voters.length) {
+            f.box.appendChild(el('p', 'fanmore',
+              'and ' + (n.voterTotal - n.voters.length) + ' more like them, all agreeing'));
+          }
+        }
+        if (n.support) {
+          var sup = el('div', 'support');
+          sup.innerHTML = svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5L16 9.5"/>', 15);
+          var st = el('div');
+          st.appendChild(el('b', null,
+            (n.support.capped ? 'at least ' : '') + group(n.support.total) + ' other ways '));
+          st.appendChild(document.createTextNode(
+            'of asking also reach this same answer, so it does not rest on one note.'));
+          if (n.support.samples.length) {
+            var more = el('button', 'morebtn', 'Show a few');
+            var list = null;
+            more.onclick = function () {
+              if (list) { list.remove(); list = null; more.textContent = 'Show a few'; return; }
+              list = el('div', 'voters');
+              n.support.samples.forEach(function (sm) {
+                var d = el('div', null, sm); d.dir = 'auto'; list.appendChild(d);
+              });
+              sup.parentNode.insertBefore(list, sup.nextSibling);
+              more.textContent = 'Hide them';
+            };
+            st.appendChild(document.createElement('br'));
+            st.appendChild(more);
+          }
+          sup.appendChild(st);
+          f.box.appendChild(sup);
+        }
+        a2.appendChild(f.box);
+      });
+      a2.appendChild(recognitionDetail());
+      acts.appendChild(a2);
+    } else {
+      // NO CHAIN.  The painted question stands on its own, and the near misses
+      // carry the story: each one shown against YOUR words, with the stretch
+      // they share solid and the rest faded. "Close, but not close enough" is
+      // then something you look at rather than a number you take on trust.
+      var a1 = act(++actNo, 'What it read', null);
+      a1.appendChild(pane);
+      a1.appendChild(el('p', 'caption', r.covered > 0
+        ? 'Underlined: wording it had seen before. Everything else is new to it.'
+        : 'None of this wording appears in what it was taught.'));
+      a1.appendChild(recognitionDetail());
+      acts.appendChild(a1);
+
+      var a2b = act(++actNo, 'What it nearly reached',
+        'No chain of reasoning got anywhere, so there is none to draw. What there ' +
+        'is instead is the closest thing it holds.');
+      if (x.nearest.length) {
+        var near = el('div', 'near');
+        x.nearest.forEach(function (nr) {
+          var row = el('div', 'near-row2');
+          var t = el('div', 'nt');
+          t.dir = 'auto';
+          var run = sharedRun(x.question, nr.text);
+          if (run) {
+            t.appendChild(el('span', 'rest', nr.text.slice(0, run[0])));
+            t.appendChild(el('span', 'same', nr.text.slice(run[0], run[1])));
+            t.appendChild(el('span', 'rest', nr.text.slice(run[1])));
+          } else {
+            t.appendChild(el('span', 'rest', nr.text));
+          }
+          t.title = nr.text + (nr.node != null ? '  ·  note #' + nr.node : '');
+          row.appendChild(t);
+          row.appendChild(el('div', 'ns', nr.score.toFixed(2)));
+          near.appendChild(row);
+        });
+        a2b.appendChild(near);
+        a2b.appendChild(el('p', 'caption',
+          'Solid: the words these share with yours. It judged none of them near ' +
+          'enough to stand behind, so it said nothing rather than hand you the nearest.'));
+      } else {
+        a2b.appendChild(el('p', 'note-under',
+          'Nothing in memory was near enough to this text for the engine even to list it.'));
+      }
+      acts.appendChild(a2b);
+    }
+
+    /* ── what it weighed, with the ladder one click below ────────────── */
+    var w = x.weighing;
+    if (w.routes.length) {
+      // MEASURED: this act used to run 754-844px in every case — larger than
+      // the chain above it, which is the flow this panel exists to show, and
+      // 49% of the whole panel on an answer whose entire story is "it did the
+      // sum". It is also the most technical content here (cost, floor, route,
+      // grade). So the FACT that routes were weighed stays in one line, where
+      // it belongs in the story, and the ladder itself is one click away.
+      var a3 = act(++actNo, 'What it weighed', null);
+      var won = null, empties = 0;
+      w.routes.forEach(function (rt) {
+        if (rt.state === 'won') won = rt;
+        if (rt.state === 'empty') empties++;
+      });
+      var sum = el('p', 'tally');
+      if (silent) {
+        sum.innerHTML = 'It had <b>' + w.routes.length +
+          '</b> different ways of reaching an answer, and not one of them came back ' +
+          'with something it could stand behind. That is the whole reason it said nothing.';
+      } else if (won) {
+        // When the value was COMPUTED, the engine still credits whichever route
+        // carried it into the answer — so the headline says "it worked the sum
+        // out" while this line names a route about covering your sentence, and
+        // the two read as the panel contradicting itself. Both are true; say
+        // how they fit together rather than leaving the reader to guess.
+        var computed = x.chain.links.some(function (l) {
+          return l.move === 'evalComputation';
+        });
+        sum.innerHTML = (computed
+          ? 'The value itself came from the arithmetic above. Of the <b>' +
+            w.routes.length + '</b> ways it weighed for carrying that value into an ' +
+            'answer, it took <b>' + won.label + '</b>'
+          : 'It weighed <b>' + w.routes.length +
+            '</b> different ways of reaching an answer and took this one: <b>' +
+            won.label + '</b>') +
+          (won.measured && won.grade != null
+            ? ', at a cost of <b>' + won.grade + '</b> — the cheapest available.'
+            : '.');
+      } else {
+        sum.innerHTML = 'It weighed <b>' + w.routes.length +
+          '</b> different ways of reaching an answer.';
+      }
+      a3.appendChild(sum);
+      a3.appendChild(el('p', 'caption',
+        'Cost is what a route leaves unexplained plus the moves it takes. It is a ' +
+        'cost, never a confidence — two routes can cost the same and one be wrong.'));
+
+      var det3 = el('details', 'inline');
+      det3.appendChild(el('summary', null,
+        'What each of the ' + w.routes.length + ' routes cost'));
+      var a3body = el('div', 'inline-body');
+      if (w.regimePlain) a3body.appendChild(el('p', 'note-under', w.regimePlain));
+      // TWO DIFFERENT NUMBERS, TWO DIFFERENT MARKS.  A route that RAN has a
+      // cost; a route that did not has a FLOOR — the cheapest it could ever
+      // have come out at. Drawing both as a filled bar on one axis is how the
+      // winning route ends up with the longest bar under a heading that says
+      // the cheapest wins. So: an evaluated cost is a filled bar, a floor is a
+      // tick on an empty track, and the two can never be read as the same claim.
+      var ran = { won: 1, empty: 1 };
+      var worst = 1;
+      w.routes.forEach(function (rt) { if (rt.grade != null && rt.grade > worst) worst = rt.grade; });
+      var STATE = {
+        won: 'took the answer', empty: 'ran, found nothing',
+        ran: 'in play', outgunned: 'never run', blocked: 'cannot apply'
+      };
+      var ladder = el('div', 'ladder');
+      w.routes.forEach(function (rt) {
+        // A measured cost is a length spent; a floor is only a position on the
+        // scale. One is a bar, the other a tick, and never the reverse.
+        var evaluated = rt.measured;
+        var row = el('div', 'rung ' + rt.state + (evaluated ? ' real' : ' floor'));
+        var tp = el('div', 'top');
+        var nm = el('span', 'name', upper(rt.label));
+        nm.title = 'the engine calls this route “' + rt.name + '”';
+        tp.appendChild(nm);
+        tp.appendChild(el('span', 'stat', STATE[rt.state] || rt.state));
+        tp.appendChild(el('span', 'grade', rt.grade == null
+          ? '—'
+          : (rt.measured ? 'cost ' : 'at best ') + rt.grade));
+        row.appendChild(tp);
+        if (rt.grade != null) {
+          var bar = el('div', 'gauge');
+          var pos = Math.max(3, Math.round(100 * rt.grade / worst));
+          if (evaluated) {
+            var fl = el('i');
+            fl.style.width = pos + '%';
+            bar.appendChild(fl);
+          } else {
+            var tick = el('i', 'tick');
+            tick.style.left = 'calc(' + pos + '% - 1px)';
+            bar.appendChild(tick);
+          }
+          row.appendChild(bar);
+        }
+        if (rt.why) row.appendChild(el('p', 'lead', rt.why));
+        ladder.appendChild(row);
+      });
+      a3body.appendChild(ladder);
+      var rules = el('div', 'rules');
+      rules.appendChild(el('p', null,
+        'A filled bar is what a route actually cost; a tick is only the cheapest ' +
+        'it could ever have come out at, for a route that was not run. Shorter is ' +
+        'cheaper either way.'));
+      (w.rules || []).forEach(function (t) { rules.appendChild(el('p', null, t)); });
+      a3body.appendChild(rules);
+      det3.appendChild(a3body);
+      a3.appendChild(det3);
+      acts.appendChild(a3);
+    }
+
+    if (w.closeCall) {
       var flag = el('div', 'flag');
       flag.innerHTML = svg('<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6A2 2 0 0 0 22 18L13.7 3.9a2 2 0 0 0-3.4 0z"/>', 14);
-      var t = el('div');
-      t.appendChild(el('b', null, 'Close call. '));
-      t.appendChild(document.createTextNode(
-        'A rival line of reasoning came very near to winning (' + x.closeCall +
-        '), so one more trained fact could tip this the other way.'));
-      flag.appendChild(t);
+      var ft = el('div');
+      ft.appendChild(el('b', null, 'Close call. '));
+      ft.appendChild(document.createTextNode(
+        'A rival line of reasoning came very near to winning (' + w.closeCall +
+        '), so one more trained note could tip this the other way.'));
+      flag.appendChild(ft);
       root.appendChild(flag);
     }
 
-    if (x.considered && x.considered.length) {
-      var det2 = el('details', 'more');
-      // When there is no answer, these rejections ARE the explanation, so they
-      // open by default instead of hiding behind a disclosure.
-      if (silent) det2.open = true;
-      det2.appendChild(el('summary', null,
-        (silent ? 'What Sema tried — ' : 'Roads not taken — ') +
-        plural(x.considered.length, 'approach', 'approaches') + ' tried and rejected'));
+    /* ── what it tried and dropped ───────────────────────────────────── */
+    if (x.rejected && x.rejected.length) {
+      var det = el('details', 'more');
+      if (silent) det.open = true;
+      det.appendChild(el('summary', null,
+        (silent ? 'What it tried — ' : 'Roads not taken — ') +
+        plural(x.rejected.length, 'approach', 'approaches') + ' it ruled out'));
       var inner = el('div', 'inner');
       inner.appendChild(el('p', null, silent
-        ? 'Each of these is a different way of arriving at an answer it could stand behind. All of them came ' +
-          'up empty, which is precisely why Sema stayed quiet.'
-        : 'Sema tries many ways to reach an answer it can back up, and reports each one that came up empty. ' +
-          'This is why it can stay silent instead of inventing something.'));
-      x.considered.forEach(function (s) {
-        var r = el('div', 'rej');
-        // Label on its own line, not joined by a dash. The labels name an
-        // action ("Copying how a worked example does it"), so "label — it could
-        // not" reads as a claim immediately contradicted.
-        r.appendChild(el('b', null, s.label));
-        r.appendChild(document.createTextNode(s.plain || s.note || 'no result'));
-        // Sema's exact wording stays available underneath, so the plain
-        // reading never costs you the auditable one.
-        if (s.plain && s.note) r.appendChild(el('div', 'rej-raw', s.note));
-        inner.appendChild(r);
+        ? 'Each of these is a different way of arriving at an answer it could stand ' +
+          'behind. All of them came back with nothing, which is precisely why it stayed quiet.'
+        : 'Sema reports every approach that came up empty, not only the one that worked. ' +
+          'This is what lets it stay silent instead of inventing something.'));
+      x.rejected.forEach(function (s) {
+        var rw = el('div', 'rej');
+        rw.appendChild(el('b', null, s.label));
+        rw.appendChild(document.createTextNode(s.plain));
+        if (s.note) rw.appendChild(el('div', 'rej-raw', s.note));
+        inner.appendChild(rw);
       });
-      det2.appendChild(inner);
+      det.appendChild(inner);
+      root.appendChild(det);
+    }
+
+    /* ── the complete trace, in the engine's own nesting ─────────────── */
+    if (x.trace && x.trace.length) {
+      var det2 = el('details', 'more');
+      det2.appendChild(el('summary', null,
+        (x.traceCapped ? 'The trace — ' : 'The complete trace — ') +
+        plural(x.stepCount, 'step') +
+        (x.trace.length < x.stepCount ? ', ' + x.trace.length + ' rows' : '')));
+      var in2 = el('div', 'inner');
+      in2.appendChild(el('p', null,
+        'Every step the engine recorded, nothing grouped away. A mechanism is listed ' +
+        'before everything it ran inside, with that work indented beneath it — so ' +
+        'the first row is the whole response, not the first thing that happened.'));
+      var tkey = el('div', 'tree-key');
+      [['read', 'reading you'], ['recall', 'searching memory'], ['walk', 'reasoning'],
+       ['weigh', 'choosing'], ['speak', 'answering']].forEach(function (k) {
+        var s = el('span');
+        s.appendChild(el('i', 'dotf ' + k[0]));
+        s.appendChild(document.createTextNode(k[1]));
+        tkey.appendChild(s);
+      });
+      var tree = el('div', 'tree');
+      tree.appendChild(tkey);
+      x.trace.forEach(function (t) {
+        var row = el('div', 'trow');
+        row.appendChild(el('div', 'ix', String(t.i)));
+        var body = el('div', 'body');
+        body.style.paddingLeft = Math.min(t.depth, 6) * 11 + 'px';
+        var nm = el('div', 'nm');
+        nm.appendChild(el('i', 'dotf ' + t.family));
+        nm.appendChild(el('span', 'lbl', t.label));
+        if (t.repeat > 1) {
+          var rp = el('span', 'rep', '×' + t.repeat);
+          rp.title = 'ran ' + t.repeat + ' times in a row, over different material';
+          nm.appendChild(rp);
+        }
+        if (t.from && t.from.length) {
+          var dp = el('span', 'dep', '←' + t.from.join(','));
+          dp.title = 'built on the output of step ' + t.from.join(', ');
+          nm.appendChild(dp);
+        }
+        body.appendChild(nm);
+        if (t.plain) body.appendChild(el('div', 'plain', t.plain));
+        if (t.io) {
+          var io = el('div', 'io');
+          var from = el('span', null, short(t.io[0]));
+          var to = el('span', 'to', short(t.io[1]));
+          from.dir = 'auto'; to.dir = 'auto';
+          from.title = t.io[0]; to.title = t.io[1];
+          io.appendChild(from);
+          io.appendChild(document.createTextNode('→'));
+          io.appendChild(to);
+          body.appendChild(io);
+        }
+        if (t.note) body.appendChild(el('div', 'enote', t.note));
+        row.appendChild(body);
+        tree.appendChild(row);
+      });
+      in2.appendChild(tree);
+      var folded = x.trace.some(function (t) { return t.repeat > 1; });
+      if (folded || x.traceCapped) {
+        in2.appendChild(el('p', 'note-under',
+          (folded
+            ? 'A run of identical steps in the same place is shown once, with the number ' +
+              'of times it ran. '
+            : '') +
+          (x.traceCapped
+            ? 'The trace stops after ' + group(x.trace.length) + ' rows; the engine ' +
+              'emitted ' + group(x.stepCount) + ' steps in all.'
+            : '')));
+      }
+      det2.appendChild(in2);
       root.appendChild(det2);
     }
 
