@@ -4,7 +4,7 @@ export const HTML = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Sema — a mind without weights</title>
 <style>
   :root {
@@ -23,7 +23,13 @@ export const HTML = `<!doctype html>
     --line-soft: #efece5;
     --ink: #1c1a17;
     --ink-soft: #6d675e;
-    --ink-faint: #726c61;
+    /* The third ink is only as light as AA on --surface-2 allows, which is not
+       very: hold 4.5:1 on both surfaces and the furthest this can travel from
+       --ink-soft is about 1.15x. It used to sit 1.09x away, which is no step at
+       all — three levels declared and two shipped. The palette has no room for
+       a third READABLE level, so colour is not what separates these: size,
+       weight and uppercase do, and this token only has to stop fighting them. */
+    --ink-faint: #756e65;
     --accent: #9a5b2c;
     --on-accent: #ffffff;
     --accent-soft: #f4e8dc;
@@ -74,6 +80,12 @@ export const HTML = `<!doctype html>
     --f-lg: 18px;      /* a card's own title */
     --f-hero: 25px;    /* the one headline (a serif wants the size) */
     --f-display: 34px; /* the one big number (download progress) */
+    /* Tracking: three values, each with a job. The uppercase labels in this
+       interface were carrying five different ones (.1, .12, .13, .14, .26),
+       which is not a system — it is five decisions nobody made on purpose. */
+    --track-label: .12em;   /* eyebrows and section labels */
+    --track-badge: .06em;   /* small badges inside a card */
+    --track-mark: .26em;    /* the wordmark, deliberately wider */
     --lh-tight: 1.22;
     --lh-snug: 1.4;
     --lh-body: 1.55;
@@ -95,11 +107,11 @@ export const HTML = `<!doctype html>
       --bg: #131210;
       --surface: #1b1a16;
       --surface-2: #232119;
-      --line: #33302a;
+      --line: #3d392f;
       --line-soft: #302c26;
       --ink: #ece8e0;
       --ink-soft: #a29a8f;
-      --ink-faint: #918a7d;
+      --ink-faint: #8e877d;
       --accent: #dc9c62;
       --on-accent: #131210;
       --accent-soft: #2c2218;
@@ -113,8 +125,10 @@ export const HTML = `<!doctype html>
       --danger: #e0796c;
       --cool: #7fa9c6;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
-      --elev-1: 0 1px 2px rgba(0, 0, 0, .35), 0 6px 16px rgba(0, 0, 0, .4);
-      --elev-2: 0 2px 6px rgba(0, 0, 0, .4), 0 18px 44px rgba(0, 0, 0, .5);
+      --elev-1: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent),
+                0 1px 2px rgba(0, 0, 0, .35), 0 6px 16px rgba(0, 0, 0, .4);
+      --elev-2: 0 0 0 1px color-mix(in srgb, var(--ink) 13%, transparent),
+                0 2px 6px rgba(0, 0, 0, .4), 0 18px 44px rgba(0, 0, 0, .5);
     }
     /* On a dark surface the same trace needs more of the accent to be seen. */
     .graph path.area { fill: color-mix(in srgb, var(--accent) 20%, transparent); }
@@ -124,17 +138,27 @@ export const HTML = `<!doctype html>
      stops working the moment an element sets its own display — .figure, .stats
      and .thread all do.  One definition, once, instead of one per element. */
   [hidden] { display: none !important; }
-  html, body { height: 100%; }
+  html { height: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
     font: 16px/1.55 var(--font-ui);
     -webkit-font-smoothing: antialiased;
     display: flex; flex-direction: column; overflow: hidden;
+    /* The dynamic viewport unit, so the column is the height actually
+       available rather than the height the page was loaded at — browser
+       chrome that retracts on scroll no longer leaves the composer cut off. */
+    height: 100%;
+    height: 100dvh;
+    height: var(--vvh, 100dvh);
   }
   /* One reading measure for the whole demo: a line of prose or of stored text
      stays comfortable on a wide screen instead of stretching to the viewport.
      The gutter is the mobile one (16px) at every width — mobile first. */
-  .wrap { width: min(700px, 100%); margin: 0 auto; padding: 0 var(--s4); }
+  .wrap {
+    width: min(700px, 100%); margin: 0 auto;
+    padding-left: max(var(--s4), env(safe-area-inset-left));
+    padding-right: max(var(--s4), env(safe-area-inset-right));
+  }
 
   /* ---------------- header ---------------- */
   header {
@@ -142,7 +166,7 @@ export const HTML = `<!doctype html>
     flex: none; z-index: 5;
   }
   .bar { display: flex; align-items: center; gap: var(--s3); height: 56px; }
-  .mark { font-weight: 650; letter-spacing: .26em; font-size: var(--f-sm); text-transform: uppercase; }
+  .mark { font-weight: 650; letter-spacing: var(--track-mark); font-size: var(--f-sm); text-transform: uppercase; }
   .mark span { color: var(--accent); }
   /* The subtitle is a line of prose, so it takes the editorial voice — the one
      place the header admits it is part of the same page as the hero. */
@@ -151,7 +175,10 @@ export const HTML = `<!doctype html>
     color: var(--ink-soft);
     border-left: 1px solid var(--line); padding-left: var(--s3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    /* The one element in the bar that may be sacrificed as it narrows. */
+    flex: 0 1 auto; min-width: 0;
   }
+  .mark, .status, .icon-btn { flex: none; }
   .spacer { margin-left: auto; }
   .status {
     display: inline-flex; align-items: center; gap: var(--s2);
@@ -173,21 +200,22 @@ export const HTML = `<!doctype html>
     font: inherit; font-size: var(--f-sm);
   }
   .icon-btn .lab { display: none; white-space: nowrap; }
-  @media (min-width: 700px) {
-    .icon-btn { min-width: 0; min-height: 36px; }
-    .icon-btn .lab { display: inline; }
-  }
+  @media (min-width: 560px) { .icon-btn .lab { display: inline; } }
+  @media (pointer: fine) { .icon-btn { min-width: 0; min-height: 36px; } }
   .icon-btn:hover { color: var(--accent-ink); background: var(--surface-2); }
   .icon-btn.on { display: inline-flex; }
-  @media (max-width: 620px) { .tag { display: none; } }
+  @media (max-width: 560px) { .tag { display: none; } }
 
   /* ---------------- boot ---------------- */
-  #boot { flex: 1; display: grid; place-items: center; padding: var(--s5) var(--s4); overflow-y: auto; }
+  #boot { flex: 1; display: grid; place-items: safe center; padding: var(--s5) var(--s4); overflow-y: auto; }
   .card {
     width: min(560px, 100%); background: var(--surface); border: 1px solid var(--line);
     border-radius: var(--r); box-shadow: var(--elev-1); padding: var(--s5) var(--s5) var(--s4);
   }
-  .card h1 { margin: 0 0 var(--s1); font-family: var(--font-display); font-size: var(--f-hero); font-weight: 600; letter-spacing: -.01em; }
+  .card h1 {
+    margin: 0 0 var(--s1); font-family: var(--font-display); font-size: var(--f-hero);
+    font-weight: 600; letter-spacing: -.01em; line-height: var(--lh-tight);
+  }
   .card .sub { margin: 0; color: var(--ink-soft); font-size: var(--f-md); line-height: var(--lh-snug); }
 
   /* The figure is an INSTRUMENT: the number and its unit on one line, and the
@@ -202,13 +230,14 @@ export const HTML = `<!doctype html>
     font-size: var(--f-display); font-weight: 600; letter-spacing: -.02em; line-height: 1;
     font-variant-numeric: tabular-nums;
   }
-  .pct small { font-size: var(--f-base); font-weight: 550; color: var(--ink-faint); margin-left: 2px; }
+  .pct small { font-size: var(--f-base); font-weight: 550; color: var(--ink-faint); margin-left: 1px; }
   .of { grid-column: 2; font-size: var(--f-sm); color: var(--ink-soft); padding-bottom: 4px; }
   .graph {
-    grid-column: 1 / -1; width: 100%; height: 34px; flex: none;
-    overflow: hidden; opacity: 0; transition: opacity .4s;
+    grid-column: 1 / -1; width: 100%; height: 0; flex: none;
+    overflow: hidden; opacity: 0;
+    transition: opacity .4s, height var(--t-med) var(--ease);
   }
-  .graph.on { opacity: 1; }
+  .graph.on { height: 34px; opacity: 1; }
   /* A ghost trace, not a filled block: the METER below carries the progress, so
      the chart only has to say "the rate is alive". */
   .graph path.area { fill: color-mix(in srgb, var(--accent) 10%, transparent); }
@@ -240,11 +269,21 @@ export const HTML = `<!doctype html>
   .files { margin-top: var(--s5); display: grid; }
   .file { padding: var(--s3) 0; }
   .file + .file { border-top: 1px solid var(--line-soft); }
-  .file .row { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2); font-size: var(--f-sm); color: var(--ink-soft); }
-  .file code { font-family: var(--font-machine); color: var(--ink); font-size: var(--f-xs); }
-  .file .val { margin-left: auto; font-variant-numeric: tabular-nums; }
-  .file .meter { height: 4px; }
-  .file .tick { color: var(--ok); }
+  .file .row {
+    display: flex; align-items: baseline; gap: var(--s2) var(--s3); flex-wrap: wrap;
+    margin-bottom: var(--s2); font-size: var(--f-sm); color: var(--ink-soft);
+  }
+  .file code {
+    font-family: var(--font-machine); color: var(--ink); font-size: var(--f-xs);
+    min-width: 0; overflow-wrap: anywhere;
+  }
+  .file .val { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; }
+  .file .meter { height: 4px; transition: opacity var(--t-med); }
+  .file.is-done .meter { display: none; }
+  .file .tick { color: var(--ok); font-weight: 600; }
+  /* A file waiting its turn is not a file at zero percent. */
+  .file.is-idle .meter > i { background: var(--line); }
+  .file.is-idle code, .file.is-idle .val { color: var(--ink-faint); }
   .state {
     width: 15px; height: 15px; flex: none; border-radius: 50%; display: grid; place-items: center;
     border: 1.5px solid var(--line);
@@ -252,7 +291,10 @@ export const HTML = `<!doctype html>
   .state.done { border-color: var(--ok); background: var(--ok); }
   .state.done::after { content: ""; width: 4px; height: 7px; border: solid #fff; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) translate(-1px,-1px); }
   .state.active { border-color: var(--accent); border-top-color: transparent; animation: spin .7s linear infinite; }
-  .why-note { margin-top: var(--s2); font-size: var(--f-xs); color: var(--accent); }
+  .why-note:not(:empty) {
+    margin: 0 0 var(--s2) calc(15px + var(--s2)); font-size: var(--f-xs);
+    color: var(--ink-faint); line-height: var(--lh-snug);
+  }
 
   .hint { margin: var(--s5) 0 0; font-size: var(--f-xs); line-height: var(--lh-snug); color: var(--ink-faint); }
   .err {
@@ -280,10 +322,8 @@ export const HTML = `<!doctype html>
     margin: 0 0 var(--s3); font-family: var(--font-display); font-size: var(--f-hero);
     font-weight: 600; letter-spacing: -.005em; line-height: var(--lh-tight);
   }
-  /* The promise takes the reading measure; the aside is a FOOTNOTE — smaller
-     type runs wider, exactly as a footnote does on a page. */
-  .welcome > p { max-width: 52ch; }
-  .caveat { max-width: 68ch; }
+  /* One measure for every line of prose on this screen. */
+  .welcome > p, .caveat { max-width: 62ch; }
   .welcome > p {
     margin: 0 0 var(--s4); color: var(--ink-soft); font-size: var(--f-base);
     line-height: 1.6;
@@ -303,7 +343,7 @@ export const HTML = `<!doctype html>
   .try {
     display: flex; align-items: center; gap: var(--s3);
     margin: var(--s6) 0 var(--s3); font-size: var(--f-xs); font-weight: 600;
-    letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint);
+    letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-faint);
   }
   .try::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   /* The wider column carries a step more type — declared HERE, after the base
@@ -315,25 +355,31 @@ export const HTML = `<!doctype html>
 
   /* ---------------- training-data explorer ---------------- */
   .explorer { margin-top: var(--s3); }
+  @media (min-width: 1040px) {
+    .explorer { width: min(1020px, calc(100vw - var(--s6))); margin-left: 50%; transform: translateX(-50%); }
+    .ex-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   .ex-field {
-    display: flex; gap: var(--s2); align-items: center; background: var(--surface);
-    border: 1px solid var(--line); border-radius: var(--r); padding: 4px 4px 4px var(--s4);
-    transition: border-color var(--t-fast);
+    display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    padding: 4px 4px 4px var(--s4); transition: border-color var(--t-fast);
   }
   .ex-field:focus-within { border-color: var(--accent); }
   .ex-field svg { color: var(--ink-faint); flex: none; }
   #exq {
-    flex: 1; min-width: 0; border: 0; background: none; color: var(--ink);
-    font: inherit; font-size: var(--f-base); outline: none; padding: 0;
+    /* The basis is the width the placeholder actually needs; below it the
+       button wraps rather than squeezing the field. */
+    flex: 1 1 15rem; min-width: 0; border: 0; background: none; color: var(--ink);
+    font: inherit; font-size: var(--f-base); outline: none; padding: var(--s1) 0;
   }
   #exgo {
-    flex: none; min-height: var(--tap); border: 0; border-radius: var(--r-sm);
+    flex: 1 1 auto; min-height: var(--tap); border: 0; border-radius: var(--r-sm);
     background: var(--accent); color: var(--on-accent);
     font: inherit; font-size: var(--f-md); font-weight: 600; padding: 0 var(--s3); cursor: pointer;
   }
   #exgo:disabled { opacity: .4; cursor: not-allowed; }
   .ex-meta {
-    margin: var(--s3) 2px 0; font-size: var(--f-xs); color: var(--ink-soft);
+    margin: var(--s3) 0 0; font-size: var(--f-xs); color: var(--ink-soft);
     min-height: 16px; display: flex; align-items: center; gap: var(--s2);
   }
   .ex-meta .dim { color: var(--ink-faint); }
@@ -345,18 +391,35 @@ export const HTML = `<!doctype html>
   @keyframes spin { to { transform: rotate(360deg); } }
   .ex-list { margin-top: var(--s3); display: grid; gap: var(--s2); }
   .pair {
-    background: var(--surface); border: 0; border-radius: var(--r); box-shadow: var(--elev-1);
-    padding: var(--s4); font-size: var(--f-md); line-height: var(--lh-snug);
+    position: relative; background: var(--surface); border: 0; border-radius: var(--r);
+    box-shadow: var(--elev-1);
+    padding: var(--s3) calc(var(--s4) + 15px + var(--s3)) var(--s3) var(--s4);
+    font-size: var(--f-md); line-height: var(--lh-snug);
     cursor: pointer; transition: var(--t-fast); text-align: left;
     font-family: inherit; color: var(--ink); width: 100%; display: block;
   }
   .pair:hover, .pair:active { background: var(--accent-soft); }
+  /* The hover tint is darker than the card, so the quiet text on it has to
+     step up a level or it drops to 4.17:1 — the one place in the app where a
+     state change was taking a label below AA. */
+  .pair:hover .lbl, .pair:active .lbl,
+  .pair:hover .sc, .pair:active .sc { color: var(--ink-soft); }
+  /* The whole card is the control, so the affordance is one mark at its edge
+     rather than a footer row repeating "Ask this" once per result. */
+  .pair .go {
+    position: absolute; right: var(--s4); top: 50%; transform: translateY(-50%);
+    display: inline-flex; color: var(--ink-faint); transition: var(--t-fast);
+  }
+  .pair:hover .go, .pair:focus-visible .go {
+    color: var(--accent); transform: translateY(-50%) translateX(3px);
+  }
+  @media (hover: none) { .pair .go { color: var(--accent); } }
   /* Mobile first: the label sits ABOVE its text, so the text keeps the full
      width instead of wrapping into a narrow second column.  From 560px up there
      is room for the two columns this card was originally drawn for. */
   .pair .side { display: block; }
   .pair .lbl {
-    display: block; font-size: var(--f-xs); font-weight: 600; letter-spacing: .12em;
+    display: block; font-size: var(--f-xs); font-weight: 600; letter-spacing: var(--track-label);
     text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--s1);
   }
   /* A card is a PREVIEW of one trained note, not the note itself: two lines on a
@@ -370,23 +433,16 @@ export const HTML = `<!doctype html>
   }
   @media (min-width: 768px) { .pair .val { -webkit-line-clamp: 3; } }
   .pair .to { color: var(--accent); }
-  .pair .rule { display: block; height: 1px; background: var(--line-soft); margin: var(--s3) 0; }
+  .pair .rule { display: block; height: 1px; background: var(--line-soft); margin: var(--s2) 0; }
+  /* Shown only for a search hit, where it says WHY this one matched. */
   .pair .sc {
-    font-size: var(--f-xs); color: var(--ink-faint); margin-top: var(--s3);
-    display: flex; align-items: center; gap: var(--s3);
-  }
-  /* The footer belongs to the TEXT column, not to the card's edge. */
-  @media (min-width: 560px) { .pair .sc { margin-left: calc(78px + var(--s3)); } }
-  .pair .ask {
-    margin-left: auto; display: inline-flex; align-items: center; gap: var(--s1);
-    font-size: var(--f-md); font-weight: 600; color: var(--accent); white-space: nowrap;
+    display: block; font-size: var(--f-xs); color: var(--ink-faint); margin-top: var(--s2);
   }
   @media (min-width: 560px) {
     .pair .side { display: flex; gap: var(--s3); align-items: baseline; }
-    .pair .lbl { flex: none; width: 78px; margin-bottom: 0; }
+    .pair .lbl { flex: none; width: 6.6em; min-width: 72px; margin-bottom: 0; }
+    .pair .sc { margin-left: calc(6.6em + var(--s3)); }
   }
-  .pair .ask-ar { display: inline-flex; transition: transform var(--t-med); }
-  .pair:hover .ask-ar, .pair:focus-visible .ask-ar { transform: translateX(3px); }
   /* A search that finds nothing is still a screen the reader lands on: it gets
      the same shape as a card, an icon that says which memory came up empty, and
      one line of what to do next — never a bare sentence floating in space. */
@@ -400,7 +456,7 @@ export const HTML = `<!doctype html>
   }
   .ex-empty-title {
     margin: 0 0 var(--s2); font-family: var(--font-display); font-size: var(--f-lg);
-    font-weight: 600; color: var(--ink);
+    font-weight: 600; color: var(--ink); line-height: var(--lh-tight);
   }
   .ex-empty-msg { margin: 0 auto; max-width: 46ch; font-size: var(--f-sm); line-height: var(--lh-body); }
   .ex-more {
@@ -413,11 +469,20 @@ export const HTML = `<!doctype html>
   }
   .ex-more:disabled { opacity: .45; cursor: not-allowed; }
 
-  .msg { margin: var(--s5) 0; display: flex; flex-direction: column; }
+  .msg { margin: var(--s4) 0; display: flex; flex-direction: column; }
   .msg.me { align-items: flex-end; }
+  /* A reply belongs to the question above it: half the gap inside a turn, the
+     full gap between turns, so the eye groups them without a rule or a box. */
+  .msg.ai { margin-top: var(--s2); }
   /* Shrink-wrap to the text: a stretched bubble around three loading dots
      reads as a broken empty box. */
-  .bubble { align-self: flex-start; max-width: 90%; padding: var(--s3) var(--s4); border-radius: var(--r); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bubble {
+    align-self: flex-start; max-width: 90%; padding: var(--s3) var(--s4);
+    border-radius: var(--r); white-space: pre-wrap; overflow-wrap: anywhere;
+    font-size: var(--f-base);
+  }
+  /* An answer is often a bare code; its digits should line up with themselves. */
+  .ai .bubble { font-variant-numeric: tabular-nums; }
   /* Both sides of the conversation are material too: what Sema says sits on a
      raised surface, what you said sits on a warm tint of the paper. */
   .me .bubble {
@@ -430,19 +495,27 @@ export const HTML = `<!doctype html>
   }
   /* Silence and failure are still MESSAGES: quiet tint, no dashed outline. */
   .ai .bubble.silent {
-    background: var(--surface-2); box-shadow: none; border: 0;
-    color: var(--ink-soft); font-size: var(--f-md);
+    background: var(--surface-2); box-shadow: none; border: 0; color: var(--ink-soft);
   }
   .ai .bubble.err-bubble {
     background: color-mix(in srgb, var(--danger) 9%, var(--surface));
     border: 0; color: var(--danger);
   }
   .again {
-    display: block; margin-top: var(--s2); background: none; border: 0; padding: 0; cursor: pointer;
+    display: inline-flex; align-items: center; min-height: var(--tap);
+    margin-top: var(--s1); background: none; border: 0; padding: 0; cursor: pointer;
     font: inherit; font-size: var(--f-sm); color: var(--accent); text-decoration: underline;
     text-underline-offset: 3px;
   }
-  .who { font-size: var(--f-xs); letter-spacing: .13em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--s1); }
+  .who {
+    font-size: var(--f-xs); letter-spacing: var(--track-label);
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--s1);
+  }
+  /* Kept for assistive tech, which has no alignment or colour to go on. */
+  .msg.me .who {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip-path: inset(50%); white-space: nowrap;
+  }
   .dots { display: flex; gap: var(--s1); padding: var(--s1) 2px; }
   .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); animation: bob 1.2s infinite; }
   .dots i:nth-child(2) { animation-delay: .15s } .dots i:nth-child(3) { animation-delay: .3s }
@@ -451,13 +524,15 @@ export const HTML = `<!doctype html>
   /* The explanation is the demo's point, so its button is a material pill —
      the last outlined box in the conversation is gone. */
   .why {
-    align-self: flex-start; margin-top: var(--s3); display: inline-flex; align-items: center;
-    gap: var(--s2); min-height: var(--tap); padding: 0 var(--s4);
-    background: var(--surface); border: 0; box-shadow: var(--elev-1); color: var(--ink-soft);
-    font: inherit; font-size: var(--f-md); border-radius: 99px; cursor: pointer; transition: var(--t-fast);
+    align-self: flex-start; margin-top: var(--s1); display: inline-flex; align-items: center;
+    gap: var(--s2); min-height: var(--tap); padding: 0 var(--s3);
+    background: none; border: 0; box-shadow: none; color: var(--accent-ink);
+    font: inherit; font-size: var(--f-md); font-weight: 600; border-radius: 99px;
+    cursor: pointer; transition: var(--t-fast);
   }
-  .why:hover, .why[aria-expanded="true"] {
-    color: var(--accent-ink); box-shadow: var(--elev-2);
+  .why:hover { color: var(--accent-ink); background: var(--surface-2); }
+  .why[aria-expanded="true"] {
+    color: var(--accent-ink); background: var(--surface); box-shadow: var(--elev-1);
   }
   .why .chev { transition: transform var(--t-med); }
   .why[aria-expanded="true"] .chev { transform: rotate(180deg); }
@@ -558,7 +633,7 @@ export const HTML = `<!doctype html>
     margin: var(--s2) 0 0; font-size: var(--f-sm); color: var(--ink-soft);
     line-height: var(--lh-snug);
   }
-  @media (max-width: 560px) {
+  @media (max-width: 560px), (max-height: 560px) {
     .act { padding-left: 42px; padding-right: var(--s3); }
     .act::before { left: 23px; }
     .act > .no { left: 10px; }
@@ -639,6 +714,7 @@ export const HTML = `<!doctype html>
     transition: box-shadow var(--t-fast);
   }
   .piece.more { cursor: default; }
+  @media (hover: none) { .piece { padding: 9px var(--s3); } }
   /* Pinned: the control stays lit while the words it names stay lit. */
   .piece[aria-pressed="true"], .anchor[aria-pressed="true"] {
     box-shadow: inset 0 0 0 2px var(--accent);
@@ -660,7 +736,7 @@ export const HTML = `<!doctype html>
   .fhead {
     display: flex; align-items: center; flex-wrap: wrap; gap: var(--s1) var(--s2);
     margin-bottom: var(--s1); font-size: var(--f-xs); font-weight: 600;
-    letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint);
+    letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-faint);
   }
   .fhead > span:first-child { white-space: nowrap; }
   .fnode.answer .fhead { color: var(--accent-ink); }
@@ -679,11 +755,11 @@ export const HTML = `<!doctype html>
   .anchor {
     flex: none; border: 0; background: var(--accent-soft); color: var(--accent-ink);
     border-radius: 99px; padding: 2px var(--s2); cursor: pointer;
-    font: inherit; font-size: 10px; font-weight: 600; letter-spacing: .06em;
+    font: inherit; font-size: 10px; font-weight: 600; letter-spacing: var(--track-badge);
     text-transform: uppercase;
   }
   .exact {
-    flex: none; font-size: 10px; font-weight: 600; letter-spacing: .06em;
+    flex: none; font-size: 10px; font-weight: 600; letter-spacing: var(--track-badge);
     text-transform: uppercase; color: var(--ok-ink); background: var(--ok-soft);
     border-radius: 99px; padding: 2px var(--s2);
   }
@@ -970,7 +1046,7 @@ export const HTML = `<!doctype html>
     .pane, .tree { max-height: none; }
     .tree .tree-key { position: static; }
   }
-  @media (max-width: 560px) {
+  @media (max-width: 560px), (max-height: 560px) {
     .scrim {
       display: block; position: fixed; inset: 0; z-index: 20;
       background: rgba(0, 0, 0, .38); animation: fade .2s var(--ease);
@@ -1014,8 +1090,22 @@ export const HTML = `<!doctype html>
     text-decoration: underline; text-underline-offset: 3px;
   }
 
+  /* Reachable by keyboard, invisible until it is. */
+  .skip {
+    position: absolute; left: var(--s4); top: -100px; z-index: 30;
+    background: var(--surface); color: var(--accent-ink); box-shadow: var(--elev-2);
+    border-radius: var(--r-sm); padding: var(--s2) var(--s4);
+    font-size: var(--f-sm); font-weight: 600; text-decoration: none;
+    transition: top var(--t-fast);
+  }
+  .skip:focus { top: var(--s2); }
+
   /* ---------------- composer ---------------- */
-  .composer { flex: none; border-top: 1px solid var(--line-soft); background: var(--bg); padding: var(--s3) 0 var(--s4); }
+  .composer {
+    flex: none; border-top: 1px solid var(--line-soft); background: var(--bg);
+    padding: var(--s3) 0 var(--s4);
+    padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom, 0px));
+  }
   /* The one place you type is material, like a card — not another outlined box.
      Focus is answered by a ring plus a deeper step, never by a border colour. */
   .field {
@@ -1024,11 +1114,11 @@ export const HTML = `<!doctype html>
     padding: 4px 4px 4px var(--s4); transition: var(--t-fast);
   }
   .field:focus-within {
-    box-shadow: var(--elev-2), 0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent);
+    box-shadow: var(--elev-1), 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
   }
   #q {
     flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit;
-    font-size: var(--f-base); line-height: var(--lh-snug); resize: none; max-height: 150px;
+    font-size: var(--f-base); line-height: var(--lh-snug); resize: none; max-height: min(150px, 30vh);
     min-height: var(--tap); padding: 10px 0; outline: none;
   }
   #send {
@@ -1053,7 +1143,22 @@ export const HTML = `<!doctype html>
     display: flex; justify-content: space-between; gap: var(--s3);
     font-size: var(--f-xs); color: var(--ink-faint); margin: var(--s2) 0 0;
   }
-  @media (max-width: 620px) { .foot { display: none; } }
+  @media (max-width: 560px) { .foot { display: none; } }
+  /* Landscape on a phone is ~360px tall: the composer must not take a third of
+     it, and the hint line below it has no business being there at all. */
+  @media (max-height: 560px) {
+    /* The boot card is the tallest thing in the app and this is the shortest
+       viewport it meets; its actions have to stay within one screen. */
+    #boot { padding: var(--s3) var(--s4); }
+    .card { padding: var(--s4); }
+    .hint { display: none; }
+  }
+  @media (max-height: 460px) {
+    .composer { padding: var(--s2) 0; padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom, 0px)); }
+    #q { min-height: 38px; max-height: 84px; padding: 7px 0; }
+    .foot, .thread { display: none; }
+    .welcome { padding-top: var(--s4); }
+  }
 </style>
 </head>
 <body>
@@ -1102,6 +1207,7 @@ export const HTML = `<!doctype html>
 
 <!-- ============ chat ============ -->
 <main id="app">
+  <a class="skip" href="#q">Skip to the question box</a>
   <div id="scroll">
     <div class="wrap"><div id="log" aria-live="polite" aria-relevant="additions text"></div></div>
   </div>
@@ -1217,6 +1323,7 @@ export const HTML = `<!doctype html>
     var stats = $('boot').querySelector('.stats');
     if (stats) stats.hidden = s.phase === 'error';
     meter.hidden = s.phase === 'error';
+    if (s.phase === 'error') $('graph').classList.remove('on');
 
     if (s.total > 0 && (active || s.have > 0)) {
       var pct = (s.have / s.total) * 100;
@@ -1256,11 +1363,13 @@ export const HTML = `<!doctype html>
         var m = el('div', 'meter');
         r.bar = el('i'); m.appendChild(r.bar);
         r.why = el('div', 'why-note');
-        box.appendChild(head); box.appendChild(m); box.appendChild(r.why);
+        r.box = box;
+        box.appendChild(head); box.appendChild(r.why); box.appendChild(m);
         $('files').appendChild(box);
       }
       var running = !f.done && f.have > 0 && active;
       r.bar.style.width = (f.total > 0 ? (f.have / f.total) * 100 : 0).toFixed(2) + '%';
+      r.box.className = 'file' + (f.done ? ' is-done' : running ? ' is-running' : ' is-idle');
       r.state.className = 'state' + (f.done ? ' done' : running ? ' active' : '');
       r.val.textContent = f.done ? 'ready' : bytes(f.have) + ' / ' + bytes(f.total);
       r.val.className = 'val' + (f.done ? ' tick' : '');
@@ -1299,7 +1408,7 @@ export const HTML = `<!doctype html>
       $('app').classList.add('on');
       $('reset').classList.add('on');
       welcome();
-      $('q').focus();
+      focusComposer();
     }
   }
 
@@ -1344,7 +1453,7 @@ export const HTML = `<!doctype html>
     var input = el('input', null);
     input.id = 'exq';
     input.type = 'search';
-    input.placeholder = 'Search what Sema was trained on…';
+    input.placeholder = 'Search the training data…';
     input.setAttribute('aria-label', 'Search what Sema was trained on');
     input.autocomplete = 'off';
     var go = el('button', null, 'Search');
@@ -1429,7 +1538,7 @@ export const HTML = `<!doctype html>
     meta.appendChild(el('span', null, d.browsed
       ? 'A few of the ' + held + ', picked at random'
       : d.pairs.length + ' matched · ' + d.resolved + ' parts of your text recognised'));
-    meta.appendChild(el('span', 'dim', d.tookMs + ' ms'));
+    meta.appendChild(el('span', 'dim', '· ' + d.tookMs + ' ms'));
 
     d.pairs.forEach(function (p) {
       // The whole card is a <button>, and a button's content model is PHRASING
@@ -1450,19 +1559,16 @@ export const HTML = `<!doctype html>
       v2.dir = 'auto';
       s2.appendChild(v2);
       b.appendChild(s2);
-      var foot = el('span', 'sc');
-      foot.appendChild(el('span', null, p.matchedBytes
-        ? 'matched on ' + p.matchedBytes + ' bytes of your text'
-        : ''));
-      // The whole card is a <button>; this makes it look like one rather than
-      // relying on a grey caption to say so five times over.
-      var cta = el('span', 'ask');
-      cta.appendChild(document.createTextNode('Ask this'));
-      var ar = el('span', 'ask-ar');
-      ar.innerHTML = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 12);
-      cta.appendChild(ar);
-      foot.appendChild(cta);
-      b.appendChild(foot);
+      // Only a search hit has anything to say here; a browsed sample does not,
+      // and an empty footer was costing every card a row of its own.
+      if (p.matchedBytes) {
+        b.appendChild(el('span', 'sc',
+          'matched on ' + p.matchedBytes + ' bytes of your text'));
+      }
+      var go = el('span', 'go');
+      go.innerHTML = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 15);
+      b.appendChild(go);
+      b.setAttribute('aria-label', 'Ask Sema: ' + p.context);
       b.onclick = function () { $('q').value = p.context; resize(); send(); };
       list.appendChild(b);
     });
@@ -2235,6 +2341,13 @@ export const HTML = `<!doctype html>
 
   /* ================= chat ================= */
   var log = $('log'), scroller = $('scroll'), busy = false;
+  /** Ready to type, without yanking the view: a plain focus() scrolls the
+   *  focused element into view, which on arrival pulls the headline up under
+   *  the header. */
+  function focusComposer() {
+    var q = $('q');
+    try { q.focus({ preventScroll: true }); } catch (e) { q.focus(); }
+  }
   function toBottom() { scroller.scrollTop = scroller.scrollHeight; }
 
   // Reasoning over a multi-gigabyte store is not instant, so the header says
@@ -2298,7 +2411,7 @@ export const HTML = `<!doctype html>
       // A phone has no room for a panel that pushes the answer off-screen: the
       // sheet takes the bottom edge, scrolls inside itself, and carries its own
       // way out.  Wider screens keep the panel above the button, in flow.
-      asSheet = window.matchMedia('(max-width: 560px)').matches;
+      asSheet = window.matchMedia('(max-width: 560px), (max-height: 560px)').matches;
       var closer = null;
       if (asSheet) {
         panel.classList.add('sheet');
@@ -2391,7 +2504,7 @@ export const HTML = `<!doctype html>
         pending.bubble.appendChild(again);
       })
       .then(function () {
-        busy = false; $('send').disabled = false; working(false); $('q').focus(); toBottom();
+        busy = false; $('send').disabled = false; working(false); focusComposer(); toBottom();
       });
   }
 
@@ -2423,8 +2536,45 @@ export const HTML = `<!doctype html>
   function resize() {
     var q = $('q');
     q.style.height = 'auto';
-    q.style.height = Math.min(q.scrollHeight, 150) + 'px';
+    // scrollHeight is an integer and the line box is fractional (15.5 x 1.4),
+    // so three lines want 85.1px and the clamp hands back 85 — the last line
+    // disappears with no scrollbar and the caret off-screen. One px of slack.
+    q.style.height = Math.min(q.scrollHeight + 1, maxField()) + 'px';
   }
+  /** The field may never take so much of a short viewport that what you are
+   *  typing is pushed off the bottom edge. */
+  function maxField() {
+    return Math.max(76, Math.min(150, Math.round(viewportH() * 0.28)));
+  }
+  function viewportH() {
+    return (window.visualViewport && window.visualViewport.height) ||
+      window.innerHeight || 600;
+  }
+  /** Keep the app exactly as tall as the space the browser is really giving it.
+   *  This is the one thing that puts the composer above an on-screen keyboard
+   *  on iOS, where the viewport meta hint is ignored. */
+  (function trackViewport() {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    var tick = null, was = vv.height;
+    function apply() {
+      tick = null;
+      document.documentElement.style.setProperty('--vvh', vv.height + 'px');
+      resize();
+      // ONLY when the viewport actually SHRANK, which is the keyboard opening.
+      // Firing on every event scrolled the welcome screen to its own foot the
+      // moment the composer took focus, hiding the headline above it.
+      var shrank = vv.height < was - 80;
+      was = vv.height;
+      if (shrank && document.activeElement === $('q') && log.querySelector('.msg')) {
+        toBottom();
+      }
+    }
+    function schedule() { if (!tick) tick = requestAnimationFrame(apply); }
+    vv.addEventListener('resize', schedule);
+    vv.addEventListener('scroll', schedule);
+    apply();
+  })();
 
   function resetThread() {
     fetch('/api/reset', {
@@ -2438,7 +2588,7 @@ export const HTML = `<!doctype html>
       // A sheet lives outside the log (it has a scrim on the body), so a reset
       // has to take it down before it clears the conversation under it.
       if (closeOpenSheet) closeOpenSheet();
-      log.innerHTML = ''; turns = 0; paintThread(); welcome(); $('q').focus();
+      log.innerHTML = ''; turns = 0; paintThread(); welcome(); focusComposer();
     }).catch(function (err) {
       var m = addMessage('ai', null);
       m.bubble.className = 'bubble silent err-bubble';
@@ -2455,7 +2605,9 @@ export const HTML = `<!doctype html>
   $('thread-clear').onclick = resetThread;
   $('send').onclick = send;
   $('q').addEventListener('input', resize);
+  var hardKeyboard = window.matchMedia('(pointer: fine)').matches;
   $('q').addEventListener('keydown', function (e) {
+    if (!hardKeyboard) return;   // on touch, Enter is a newline
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   });
 })();

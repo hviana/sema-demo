@@ -124,6 +124,29 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
 
 ## What the UI does
 
+- **One column, two breakpoints, and a height axis.** `.wrap` is
+  `min(700px, 100%)` for the header, the prose, the chat and the composer — a
+  reading measure is a reading measure, and widening it on a big screen would
+  only make the lines harder to read. The one region that genuinely wants width
+  is the explorer, which is a _scanning_ surface rather than prose: past 1040px
+  it takes its own wider measure and a second column, and nothing else moves.
+  Below that there are two width thresholds (560 for "wide enough for a label
+  gutter", 768 for "room for a step more air") and one height threshold, because
+  **a phone in landscape is 740×360 — wider than any phone breakpoint and
+  shorter than any of them account for.** The explanation sheet, the act
+  gutters, the boot card and the composer all key off the short dimension too.
+  Where a layout can respond without a breakpoint at all it does: the search
+  field states the width its placeholder needs and the button steps down to its
+  own line exactly when that width stops being available.
+
+- **The keyboard is not the viewport.** `interactive-widget=resizes-content` is
+  Android-only and `100dvh` tracks retracting browser chrome, not the on-screen
+  keyboard — so on iOS the composer went under it, with nothing able to scroll
+  it back: the page does not scroll, and the composer is a _sibling_ of the
+  scroller rather than inside it. A `visualViewport` listener writes the real
+  height into `--vvh`, and the field caps itself at a share of that height so
+  what you are typing can never be pushed off the bottom edge.
+
 - **Multi-turn chat.** Each browser session gets its own `Conversation`, so
   follow-up turns are answered in context. Because Sema is given the _whole_
   thread, an earlier turn can still shape a later answer — ask `137*24`, then
@@ -246,10 +269,19 @@ in flight.
 Colours are not chosen by eye. Every text node in the running page — welcome,
 download card, chat, and a fully expanded explanation — is sampled against its
 composited background and checked at WCAG AA (4.5:1, or 3:1 for large text), in
-both themes. The sweep now comes back clean; getting there moved `--ink-faint`
-in both themes, split `--accent-ink` / `--ok-ink` for text sitting on a tinted
+both themes. The sweep comes back clean; getting there moved `--ink-faint` in
+both themes, split `--accent-ink` / `--ok-ink` for text sitting on a tinted
 panel, and added `--on-accent`, because white on the dark theme's tan accent
-measured **2.34:1** on the primary Search and Send buttons.
+measured **2.34:1** on the primary Search and Send buttons. A state change is
+checked too: the explorer card's hover tint is darker than the card, so the
+labels on it step up a level rather than drop to 4.17:1.
+
+The palette has **three ink levels and room for two.** `--ink-soft` and
+`--ink-faint` were 2% apart — no perceptible step, which silently defeated every
+rule whose whole job is to recede. Holding 4.5:1 on both `--surface` and
+`--surface-2`, the furthest a third level can travel is about 1.15×, so it
+travels that far and no further: colour is not what separates these, and size,
+weight and uppercase are.
 
 Tints that carry text are opaque. A `color-mix(…, transparent)` chip composites
 against whatever happens to be behind it, so its real contrast depends on
@@ -259,7 +291,16 @@ Three live regions announce what changes on its own: the chat log, the download
 card, and the explorer's result line. Every control takes a visible 2px focus
 ring under keyboard focus — verified by dispatching real Tab presses and reading
 the ring off `document.activeElement`, since a programmatic `.focus()` never
-triggers `:focus-visible`.
+triggers `:focus-visible`. A skip link, first in the tab order, jumps past the
+explorer and one disclosure per answered turn straight to the question box.
+
+**A finger is not a mouse, and that is a fact about the pointer, not about how
+wide the window is.** The 44px minimum is relaxed by `@media (pointer: fine)`
+rather than by a width, so it still holds on a tablet and on a phone in
+landscape; affordances that would otherwise exist only on hover are restored
+under `@media (hover: none)`. For the same reason **Enter sends only where there
+is a key to hold with it** — a soft keyboard has no Shift+Enter, so on touch
+Enter opens a new line and the send button sends.
 
 ## Exploring the training data
 
