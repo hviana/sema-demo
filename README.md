@@ -124,6 +124,14 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
 
 ## What the UI does
 
+- **The scale is in `rem`, so the interface belongs to the reader.** Type,
+  space, radii and the 44px touch minimum are all expressed against the root
+  font size — at the default 16px every value is exactly the pixel number it
+  replaces, and a reader who has raised their default gets a larger _interface_
+  rather than larger text in boxes built for smaller text. The reading measure
+  scales with it, so a bigger font still buys the same number of words per line.
+  Verified by rendering at a 20px root and by a pixel-identical diff at 16.
+
 - **One column, two breakpoints, and a height axis.** `.wrap` is
   `min(700px, 100%)` for the header, the prose, the chat and the composer — a
   reading measure is a reading measure, and widening it on a big screen would
@@ -297,10 +305,20 @@ explorer and one disclosure per answered turn straight to the question box.
 **A finger is not a mouse, and that is a fact about the pointer, not about how
 wide the window is.** The 44px minimum is relaxed by `@media (pointer: fine)`
 rather than by a width, so it still holds on a tablet and on a phone in
-landscape; affordances that would otherwise exist only on hover are restored
+landscape — and it is relaxed on the **token**, not as an exception on one
+control, so every control relaxes together and the rule is true rather than
+merely stated. Affordances that would otherwise exist only on hover are restored
 under `@media (hover: none)`. For the same reason **Enter sends only where there
 is a key to hold with it** — a soft keyboard has no Shift+Enter, so on touch
-Enter opens a new line and the send button sends.
+Enter opens a new line, the send button sends, and the line explaining the
+keyboard is hidden by the same pointer query that governs the behaviour, not by
+a width that disagrees with it.
+
+**Nothing you have typed is ever discarded.** Tapping a note in the explorer
+asks Sema about it — unless the composer already holds a draft, in which case it
+loads the question and waits, because on a phone the whole row is what you drag
+past while scrolling. The explorer survives the first question too: the pitch
+above it retires, the instrument does not.
 
 ## Exploring the training data
 

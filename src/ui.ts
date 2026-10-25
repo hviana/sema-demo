@@ -34,7 +34,6 @@ export const HTML = `<!doctype html>
     --on-accent: #ffffff;
     --accent-soft: #f4e8dc;
     --accent-ink: #925629;
-    --user: #262320;
     /* What YOU said: a warm step of the paper, deep enough to read as a
        message (the accent tint alone disappears into the background). */
     --bubble-me: color-mix(in srgb, var(--accent) 20%, var(--surface));
@@ -46,8 +45,7 @@ export const HTML = `<!doctype html>
     /* One cool hue, for the one place the palette has to carry a CATEGORY
        rather than a meaning: the trace's five families of work. */
     --cool: #4f7693;
-    --r: 14px;
-    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 10px 30px rgba(0,0,0,.05);
+    --r: 0.875rem;
     /* Elevation: one soft step for content, one deeper for whatever floats.
        A card is MATERIAL — it sits on the paper by value and shadow, never by
        an outline (an outline is a wireframe, not a surface). */
@@ -64,22 +62,27 @@ export const HTML = `<!doctype html>
     --ease: cubic-bezier(.4,0,.2,1);
     /* Space: one scale, so gaps read as a rhythm instead of as accidents.
        Mobile-first — the values are the phone's, and the wider screens step
-       them up in one place below rather than inventing local numbers. */
-    --s1: 4px;
-    --s2: 8px;
-    --s3: 12px;
-    --s4: 16px;
-    --s5: 24px;
-    --s6: 32px;
-    --s7: 48px;
+       them up in one place below rather than inventing local numbers.
+       In REM, with the type below, so that a reader who has set a larger
+       default font size gets a larger INTERFACE rather than larger text in
+       boxes built for smaller text. At the default 16px root every value
+       below is exactly the pixel number it replaces. */
+    --s1: 0.25rem;    /*  4px */
+    --s2: 0.5rem;     /*  8px */
+    --s3: 0.75rem;    /* 12px */
+    --s4: 1rem;       /* 16px */
+    --s5: 1.5rem;     /* 24px */
+    --s6: 2rem;       /* 32px */
+    --s7: 3rem;       /* 48px */
     /* Type: one size per job. */
-    --f-xs: 11px;      /* eyebrows, metadata */
-    --f-sm: 12.5px;    /* labels, dense UI */
-    --f-md: 14px;      /* secondary body */
-    --f-base: 15.5px;  /* body and inputs */
-    --f-lg: 18px;      /* a card's own title */
-    --f-hero: 25px;    /* the one headline (a serif wants the size) */
-    --f-display: 34px; /* the one big number (download progress) */
+    --f-2xs: 0.625rem;    /* 10px — inside a badge, never on its own */
+    --f-xs: 0.6875rem;    /* 11px — eyebrows, metadata */
+    --f-sm: 0.78125rem;   /* 12.5px — labels, dense UI */
+    --f-md: 0.875rem;     /* 14px — secondary body */
+    --f-base: 0.96875rem; /* 15.5px — body and inputs */
+    --f-lg: 1.125rem;     /* 18px — a card's own title */
+    --f-hero: 1.5625rem;  /* 25px — the one headline (a serif wants the size) */
+    --f-display: 2.125rem;/* 34px — the one big number (download progress) */
     /* Tracking: three values, each with a job. The uppercase labels in this
        interface were carrying five different ones (.1, .12, .13, .14, .26),
        which is not a system — it is five decisions nobody made on purpose. */
@@ -90,16 +93,21 @@ export const HTML = `<!doctype html>
     --lh-snug: 1.4;
     --lh-body: 1.55;
     /* A finger is not a mouse: every tappable control clears this. */
-    --tap: 44px;
-    --r-sm: 10px;
-    --r-lg: 18px;
+    --tap: 2.75rem;  /* 44px — a finger. Relaxed for a mouse below. */
+    --r-xs: 0.375rem;  /*  6px — a chip */
+    --r-sm: 0.625rem;
+    --r-lg: 1.125rem;
   }
+  /* A mouse is precise, so the minimum relaxes — for every control at once,
+     by moving the token, rather than as an exception on one of them. */
+  @media (pointer: fine) { :root { --tap: 2.25rem; } }
+
   /* Wider screens get more air, not a different design. */
   @media (min-width: 768px) {
     :root {
-      --s5: 28px;
-      --s6: 40px;
-      --f-hero: 31px;
+      --s5: 1.75rem;      /* 28px */
+      --s6: 2.5rem;       /* 40px */
+      --f-hero: 1.9375rem;/* 31px */
     }
   }
   @media (prefers-color-scheme: dark) {
@@ -116,7 +124,6 @@ export const HTML = `<!doctype html>
       --on-accent: #131210;
       --accent-soft: #2c2218;
       --accent-ink: #dc9c62;
-      --user: #ece8e0;
       --bubble-me: color-mix(in srgb, var(--accent) 24%, var(--surface));
       --ok: #74b587;
       --ok-ink: #74b587;
@@ -124,7 +131,6 @@ export const HTML = `<!doctype html>
       --warn: #d3aa52;
       --danger: #e0796c;
       --cool: #7fa9c6;
-      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
       --elev-1: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent),
                 0 1px 2px rgba(0, 0, 0, .35), 0 6px 16px rgba(0, 0, 0, .4);
       --elev-2: 0 0 0 1px color-mix(in srgb, var(--ink) 13%, transparent),
@@ -141,7 +147,7 @@ export const HTML = `<!doctype html>
   html { height: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--ink);
-    font: 16px/1.55 var(--font-ui);
+    font: 1rem/1.55 var(--font-ui);
     -webkit-font-smoothing: antialiased;
     display: flex; flex-direction: column; overflow: hidden;
     /* The dynamic viewport unit, so the column is the height actually
@@ -155,7 +161,7 @@ export const HTML = `<!doctype html>
      stays comfortable on a wide screen instead of stretching to the viewport.
      The gutter is the mobile one (16px) at every width — mobile first. */
   .wrap {
-    width: min(700px, 100%); margin: 0 auto;
+    width: min(43.75rem, 100%); margin: 0 auto;
     padding-left: max(var(--s4), env(safe-area-inset-left));
     padding-right: max(var(--s4), env(safe-area-inset-right));
   }
@@ -165,13 +171,13 @@ export const HTML = `<!doctype html>
     border-bottom: 1px solid var(--line); background: var(--bg);
     flex: none; z-index: 5;
   }
-  .bar { display: flex; align-items: center; gap: var(--s3); height: 56px; }
-  .mark { font-weight: 650; letter-spacing: var(--track-mark); font-size: var(--f-sm); text-transform: uppercase; }
+  .bar { display: flex; align-items: center; gap: var(--s3); min-height: 3.5rem; }
+  .mark { font-weight: 600; letter-spacing: var(--track-mark); font-size: var(--f-sm); text-transform: uppercase; }
   .mark span { color: var(--accent); }
   /* The subtitle is a line of prose, so it takes the editorial voice — the one
      place the header admits it is part of the same page as the hero. */
   .tag {
-    font-family: var(--font-display); font-style: italic; font-size: 13px;
+    font-family: var(--font-display); font-style: italic; font-size: var(--f-sm);
     color: var(--ink-soft);
     border-left: 1px solid var(--line); padding-left: var(--s3);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -185,7 +191,12 @@ export const HTML = `<!doctype html>
     font-size: var(--f-xs); color: var(--ink-soft); white-space: nowrap;
   }
   /* The state mark is a lamp, not a bullet: a soft halo says "this is live". */
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 8%, transparent); }
+  .dot {
+    width: 0.4375rem; height: 0.4375rem; border-radius: 50%; flex: none;
+    background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+  }
+  .dot.busy { box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn) 22%, transparent); }
+  .dot.bad { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 22%, transparent); }
   .dot.busy { background: var(--warn); animation: blink var(--t-blink) ease-in-out infinite; }
   .dot.bad { background: var(--danger); }
   @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
@@ -207,9 +218,10 @@ export const HTML = `<!doctype html>
   @media (max-width: 560px) { .tag { display: none; } }
 
   /* ---------------- boot ---------------- */
-  #boot { flex: 1; display: grid; place-items: safe center; padding: var(--s5) var(--s4); overflow-y: auto; }
+  #boot { flex: 1; display: grid; align-content: safe center; padding: var(--s5) 0; overflow-y: auto; }
+  #boot > .wrap { width: min(43.75rem, 100%); }
   .card {
-    width: min(560px, 100%); background: var(--surface); border: 1px solid var(--line);
+    width: min(35rem, 100%); background: var(--surface); border: 0;
     border-radius: var(--r); box-shadow: var(--elev-1); padding: var(--s5) var(--s5) var(--s4);
   }
   .card h1 {
@@ -230,7 +242,8 @@ export const HTML = `<!doctype html>
     font-size: var(--f-display); font-weight: 600; letter-spacing: -.02em; line-height: 1;
     font-variant-numeric: tabular-nums;
   }
-  .pct small { font-size: var(--f-base); font-weight: 550; color: var(--ink-faint); margin-left: 1px; }
+  /* The sign belongs to its number, not a space away from it. */
+  .pct small { font-size: var(--f-base); font-weight: 600; color: var(--ink-soft); margin-left: 0; }
   .of { grid-column: 2; font-size: var(--f-sm); color: var(--ink-soft); padding-bottom: 4px; }
   .graph {
     grid-column: 1 / -1; width: 100%; height: 0; flex: none;
@@ -243,7 +256,7 @@ export const HTML = `<!doctype html>
   .graph path.area { fill: color-mix(in srgb, var(--accent) 10%, transparent); }
   .graph path.line { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
 
-  .meter { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; position: relative; }
+  .meter { height: 0.5rem; background: var(--surface-2); border-radius: 99px; overflow: hidden; position: relative; }
   .meter > i {
     display: block; height: 100%; width: 0%; border-radius: 99px; background: var(--accent);
     transition: width .45s var(--ease);
@@ -254,7 +267,7 @@ export const HTML = `<!doctype html>
   /* a moving sheen, so a slow transfer still looks alive */
   .meter.live > i::after {
     content: ""; position: absolute; inset: 0; border-radius: 99px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent);
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 55%, transparent), transparent);
     animation: sheen 1.6s linear infinite;
   }
   @keyframes sheen { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
@@ -277,19 +290,20 @@ export const HTML = `<!doctype html>
     font-family: var(--font-machine); color: var(--ink); font-size: var(--f-xs);
     min-width: 0; overflow-wrap: anywhere;
   }
+  .file .role { color: var(--ink-faint); }
   .file .val { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; }
-  .file .meter { height: 4px; transition: opacity var(--t-med); }
+  .file .meter { height: 0.25rem; transition: opacity var(--t-med); }
   .file.is-done .meter { display: none; }
   .file .tick { color: var(--ok); font-weight: 600; }
   /* A file waiting its turn is not a file at zero percent. */
-  .file.is-idle .meter > i { background: var(--line); }
+  .file.is-idle .meter { display: none; }
   .file.is-idle code, .file.is-idle .val { color: var(--ink-faint); }
   .state {
-    width: 15px; height: 15px; flex: none; border-radius: 50%; display: grid; place-items: center;
+    width: 0.9375rem; height: 0.9375rem; flex: none; border-radius: 50%; display: grid; place-items: center;
     border: 1.5px solid var(--line);
   }
   .state.done { border-color: var(--ok); background: var(--ok); }
-  .state.done::after { content: ""; width: 4px; height: 7px; border: solid #fff; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) translate(-1px,-1px); }
+  .state.done::after { content: ""; width: 4px; height: 7px; border: solid var(--surface); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) translate(-1px,-1px); }
   .state.active { border-color: var(--accent); border-top-color: transparent; animation: spin .7s linear infinite; }
   .why-note:not(:empty) {
     margin: 0 0 var(--s2) calc(15px + var(--s2)); font-size: var(--f-xs);
@@ -298,26 +312,41 @@ export const HTML = `<!doctype html>
 
   .hint { margin: var(--s5) 0 0; font-size: var(--f-xs); line-height: var(--lh-snug); color: var(--ink-faint); }
   .err {
-    margin-top: var(--s4); padding: var(--s3) var(--s4); border-radius: var(--r-sm); font-size: var(--f-md);
+    margin-top: var(--s4); padding: var(--s3) var(--s4); border-radius: var(--r-sm);
     background: color-mix(in srgb, var(--danger) 10%, transparent);
-    border: 0;
-    line-height: var(--lh-snug);
+    border: 0; line-height: var(--lh-snug);
   }
-  .retry {
-    margin-top: var(--s3); min-height: var(--tap); background: var(--accent); color: var(--on-accent);
-    border: 0; border-radius: var(--r-sm);
-    font: inherit; font-size: var(--f-md); font-weight: 600; padding: 0 var(--s4); cursor: pointer;
+  /* What went wrong, then what it means for you — two different jobs, and
+     they were set identically and ran together as one block. */
+  .err > :first-child { font-size: var(--f-md); font-weight: 600; color: var(--ink); }
+  .err > :last-child {
+    margin-top: var(--s1); font-size: var(--f-sm); color: var(--ink-soft);
   }
-  .retry:disabled { opacity: .5; cursor: not-allowed; }
+  .err > :only-child { margin-top: 0; font-size: var(--f-md); color: var(--ink); }
+  /* ---- the one filled button ---- */
+  .retry, #exgo {
+    min-height: var(--tap); background: var(--accent); color: var(--on-accent);
+    border: 0; border-radius: var(--r-sm); cursor: pointer;
+    font: inherit; font-size: var(--f-md); font-weight: 600; padding: 0 var(--s4);
+  }
+  .retry:disabled, #exgo:disabled { opacity: .45; cursor: not-allowed; }
+  .retry { margin-top: var(--s3); }
 
   /* ---------------- chat ---------------- */
   #app { flex: 1; display: none; flex-direction: column; min-height: 0; }
   #app.on { display: flex; }
   #scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
-  #log { padding: var(--s2) 0 var(--s5); }
+  /* A flex column, so the margins below do not collapse into each other —
+     as a block container it silently flattened every gap to the larger of
+     the two and the grouping rule did nothing at all. */
+  #log { display: flex; flex-direction: column; padding: var(--s2) 0 var(--s5); }
 
   /* welcome state — scrolls away once the conversation starts */
   .welcome { padding: var(--s6) 0 var(--s2); }
+  /* What is left once the conversation has started: the instrument alone,
+     quieter, and no longer claiming the top of the page. */
+  .welcome.retired { padding: var(--s3) 0 var(--s2); }
+  .welcome.retired .try { margin-top: 0; }
   .welcome h2 {
     margin: 0 0 var(--s3); font-family: var(--font-display); font-size: var(--f-hero);
     font-weight: 600; letter-spacing: -.005em; line-height: var(--lh-tight);
@@ -325,8 +354,8 @@ export const HTML = `<!doctype html>
   /* One measure for every line of prose on this screen. */
   .welcome > p, .caveat { max-width: 62ch; }
   .welcome > p {
-    margin: 0 0 var(--s4); color: var(--ink-soft); font-size: var(--f-base);
-    line-height: 1.6;
+    margin: 0 0 var(--s5); color: var(--ink); font-size: var(--f-base);
+    line-height: var(--lh-body);
   }
   /* The corpus caveat is an ASIDE: it is not a card.  No box, no fill — just a
      quieter size and the one warning-coloured mark, so the only filled surfaces
@@ -340,10 +369,13 @@ export const HTML = `<!doctype html>
   .caveat svg { flex: none; margin-top: 1px; color: var(--warn); width: 15px; height: 15px; }
   /* A section eyebrow, drawn the editorial way: the label, then a hairline that
      ties it to the width of what it introduces. */
+  /* ---- the one eyebrow ---- */
+  .try, .who, .pair .lbl {
+    font-size: var(--f-xs); font-weight: 600; letter-spacing: var(--track-label);
+    text-transform: uppercase; color: var(--ink-faint);
+  }
   .try {
-    display: flex; align-items: center; gap: var(--s3);
-    margin: var(--s6) 0 var(--s3); font-size: var(--f-xs); font-weight: 600;
-    letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-faint);
+    display: flex; align-items: center; gap: var(--s3); margin: var(--s6) 0 var(--s3);
   }
   .try::after { content: ""; flex: 1; height: 1px; background: var(--line); }
   /* The wider column carries a step more type — declared HERE, after the base
@@ -355,36 +387,38 @@ export const HTML = `<!doctype html>
 
   /* ---------------- training-data explorer ---------------- */
   .explorer { margin-top: var(--s3); }
+  .explorer > .try { margin-top: 0; }
+  .explorer > .caption { margin: 0 0 var(--s3); }
   @media (min-width: 1040px) {
     .explorer { width: min(1020px, calc(100vw - var(--s6))); margin-left: 50%; transform: translateX(-50%); }
     .ex-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .ex-field {
     display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center;
-    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-    padding: 4px 4px 4px var(--s4); transition: border-color var(--t-fast);
+    background: var(--surface); border: 0; border-radius: var(--r);
+    box-shadow: var(--elev-1);
+    padding: var(--s1) var(--s1) var(--s1) var(--s4); transition: var(--t-fast);
   }
-  .ex-field:focus-within { border-color: var(--accent); }
+  .ex-field:focus-within {
+    box-shadow: var(--elev-1), 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
+  }
   .ex-field svg { color: var(--ink-faint); flex: none; }
   #exq {
     /* The basis is the width the placeholder actually needs; below it the
        button wraps rather than squeezing the field. */
-    flex: 1 1 15rem; min-width: 0; border: 0; background: none; color: var(--ink);
-    font: inherit; font-size: var(--f-base); outline: none; padding: var(--s1) 0;
+    flex: 1 1 15rem; min-width: 0; min-height: var(--tap); border: 0; background: none;
+    color: var(--ink); font: inherit; font-size: var(--f-base); outline: none; padding: 0;
   }
-  #exgo {
-    flex: 1 1 auto; min-height: var(--tap); border: 0; border-radius: var(--r-sm);
-    background: var(--accent); color: var(--on-accent);
-    font: inherit; font-size: var(--f-md); font-weight: 600; padding: 0 var(--s3); cursor: pointer;
-  }
-  #exgo:disabled { opacity: .4; cursor: not-allowed; }
+  #exgo { flex: 0 0 auto; }
+  #exq::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
   .ex-meta {
     margin: var(--s3) 0 0; font-size: var(--f-xs); color: var(--ink-soft);
     min-height: 16px; display: flex; align-items: center; gap: var(--s2);
   }
   .ex-meta .dim { color: var(--ink-faint); }
+  .ex-meta.bad { color: var(--danger); font-weight: 600; }
   .spin {
-    width: 11px; height: 11px; flex: none; border-radius: 50%;
+    width: 0.6875rem; height: 0.6875rem; flex: none; border-radius: 50%;
     border: 1.6px solid var(--line); border-top-color: var(--accent);
     animation: spin .7s linear infinite;
   }
@@ -418,21 +452,19 @@ export const HTML = `<!doctype html>
      width instead of wrapping into a narrow second column.  From 560px up there
      is room for the two columns this card was originally drawn for. */
   .pair .side { display: block; }
-  .pair .lbl {
-    display: block; font-size: var(--f-xs); font-weight: 600; letter-spacing: var(--track-label);
-    text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--s1);
-  }
+  .pair .lbl { display: block; margin-bottom: var(--s1); }
   /* A card is a PREVIEW of one trained note, not the note itself: two lines on a
      phone (three where the column is wider) keep the list scannable and the
      heights even.  The full text is one tap away — the card asks the question. */
   .pair .val {
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden; min-width: 0; overflow-wrap: anywhere;
+    font-family: var(--font-machine); font-size: var(--f-sm);
     /* A line of text has a comfortable length even inside a wide card. */
     max-width: 74ch;
   }
   @media (min-width: 768px) { .pair .val { -webkit-line-clamp: 3; } }
-  .pair .to { color: var(--accent); }
+  .pair .side.learnt .val { color: var(--accent-ink); font-weight: 600; }
   .pair .rule { display: block; height: 1px; background: var(--line-soft); margin: var(--s2) 0; }
   /* Shown only for a search hit, where it says WHY this one matched. */
   .pair .sc {
@@ -451,23 +483,31 @@ export const HTML = `<!doctype html>
      with. */
   .ex-empty {
     display: block; text-align: center; padding: var(--s5) var(--s4);
-    border: 0; border-radius: var(--r);
-    background: var(--surface); box-shadow: var(--elev-1); color: var(--ink-soft);
+    color: var(--ink-soft);
   }
   .ex-empty-title {
     margin: 0 0 var(--s2); font-family: var(--font-display); font-size: var(--f-lg);
     font-weight: 600; color: var(--ink); line-height: var(--lh-tight);
   }
   .ex-empty-msg { margin: 0 auto; max-width: 46ch; font-size: var(--f-sm); line-height: var(--lh-body); }
-  .ex-more {
-    margin-top: var(--s3); display: inline-flex; align-items: center; min-height: var(--tap);
-    background: none; border: 0; padding: 0; cursor: pointer; transition: var(--t-fast);
-    font: inherit; font-size: var(--f-md); font-weight: 600; color: var(--accent);
+  /* ---- the one text button ------------------------------------------------
+     A control that wants no surface of its own: it lives in the flow, clears
+     the touch minimum through its own height, and says it is a control by
+     colour and by the underline it takes on hover. */
+  .linkbtn {
+    display: inline-flex; align-items: center; min-height: var(--tap);
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; font-size: var(--f-sm); font-weight: 600; color: var(--accent-ink);
+    text-align: left; transition: var(--t-fast);
   }
-  .ex-more:hover {
-    color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px;
-  }
-  .ex-more:disabled { opacity: .45; cursor: not-allowed; }
+  .linkbtn:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .linkbtn:disabled { opacity: .45; cursor: not-allowed; text-decoration: none; }
+  /* The remedy for a failure belongs to the failure, not to the brand. */
+  .linkbtn.on-error { color: var(--danger); }
+  /* An auditable layer nobody has asked for yet is not an action. */
+  .linkbtn.quiet { min-height: 2.125rem; font-weight: 400; color: var(--ink-soft); }
+  .linkbtn.quiet:hover { color: var(--accent-ink); }
+  .ex-more { margin-top: var(--s3); }
 
   .msg { margin: var(--s4) 0; display: flex; flex-direction: column; }
   .msg.me { align-items: flex-end; }
@@ -501,23 +541,21 @@ export const HTML = `<!doctype html>
     background: color-mix(in srgb, var(--danger) 9%, var(--surface));
     border: 0; color: var(--danger);
   }
+  /* Its own line, its own target, and the failure's colour rather than the
+     brand's — but not the same colour as the sentence above it. */
+  .err-line { margin: 0; color: var(--ink); }
   .again {
-    display: inline-flex; align-items: center; min-height: var(--tap);
-    margin-top: var(--s1); background: none; border: 0; padding: 0; cursor: pointer;
-    font: inherit; font-size: var(--f-sm); color: var(--accent); text-decoration: underline;
-    text-underline-offset: 3px;
+    display: flex; margin-top: var(--s2); min-height: 0; padding: var(--s2) 0 0;
+    text-decoration: underline; text-underline-offset: 3px;
   }
-  .who {
-    font-size: var(--f-xs); letter-spacing: var(--track-label);
-    text-transform: uppercase; color: var(--ink-faint); margin-bottom: var(--s1);
-  }
+  .who { margin-bottom: var(--s1); }
   /* Kept for assistive tech, which has no alignment or colour to go on. */
   .msg.me .who {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
     clip-path: inset(50%); white-space: nowrap;
   }
   .dots { display: flex; gap: var(--s1); padding: var(--s1) 2px; }
-  .dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-faint); animation: bob 1.2s infinite; }
+  .dots i { width: 0.375rem; height: 0.375rem; border-radius: 50%; background: var(--ink-faint); animation: bob 1.2s infinite; }
   .dots i:nth-child(2) { animation-delay: .15s } .dots i:nth-child(3) { animation-delay: .3s }
   @keyframes bob { 0%,60%,100% { opacity: .25; transform: translateY(0) } 30% { opacity: 1; transform: translateY(-3px) } }
 
@@ -556,20 +594,11 @@ export const HTML = `<!doctype html>
   .ex-top p { margin: 0; font-size: var(--f-md); color: var(--ink-soft); line-height: var(--lh-body); }
   .tags { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
   .tagx {
-    font-size: var(--f-xs); font-weight: 550; padding: 3px var(--s3); border-radius: 99px; border: 0;
+    font-size: var(--f-xs); font-weight: 600; padding: 3px var(--s3); border-radius: 99px; border: 0;
     background: var(--surface-2); color: var(--ink-soft);
   }
   .tagx.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface-2)); }
-  /* An auditable layer nobody has asked for yet should not be the brightest
-     thing on the page: it sits one step quieter than the acts it precedes. */
-  .techbtn {
-    margin-top: var(--s2); display: inline-flex; align-items: center; min-height: 34px;
-    background: none; border: 0; padding: 0; cursor: pointer;
-    font: inherit; font-size: var(--f-sm); color: var(--ink-soft);
-  }
-  .techbtn:hover {
-    color: var(--accent-ink); text-decoration: underline; text-underline-offset: 3px;
-  }
+  .techbtn { margin-top: var(--s2); }
   /* The auditable layer: present in the DOM always, shown on request.  Written
      as a :not() so no later component rule can out-specify it and leak the
      engine's raw notes into the plain reading. */
@@ -622,9 +651,9 @@ export const HTML = `<!doctype html>
     position: absolute; left: var(--s4); top: 0; width: 26px; height: 26px;
     border-radius: 50%; display: grid; place-items: center;
     background: var(--surface-2); color: var(--accent-ink);
-    font-family: var(--font-display); font-size: 13px; font-weight: 600;
+    font-family: var(--font-display); font-size: var(--f-sm); font-weight: 600;
   }
-  .act > h4 { margin: 3px 0 2px; font-size: var(--f-md); font-weight: 650; }
+  .act > h4 { margin: 3px 0 2px; font-size: var(--f-md); font-weight: 600; }
   .act > .lede {
     margin: 0 0 var(--s3); font-size: var(--f-sm); color: var(--ink-soft);
     line-height: var(--lh-snug);
@@ -704,11 +733,11 @@ export const HTML = `<!doctype html>
     margin: var(--s3) 0 0; font-size: var(--f-xs); color: var(--ink-faint);
     line-height: var(--lh-snug);
   }
-  .tally b { color: var(--ink); font-weight: 620; font-variant-numeric: tabular-nums; }
+  .tally b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
   .pieces { display: flex; flex-wrap: wrap; gap: var(--s1); margin-top: var(--s3); }
   .piece {
     font-family: var(--font-machine); font-size: var(--f-xs); border: 0;
-    padding: 3px var(--s2); border-radius: 6px; background: var(--surface-2);
+    padding: 3px var(--s2); border-radius: var(--r-xs); background: var(--surface-2);
     color: var(--ink-soft); cursor: pointer; max-width: 100%;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     transition: box-shadow var(--t-fast);
@@ -738,7 +767,8 @@ export const HTML = `<!doctype html>
     margin-bottom: var(--s1); font-size: var(--f-xs); font-weight: 600;
     letter-spacing: var(--track-label); text-transform: uppercase; color: var(--ink-faint);
   }
-  .fhead > span:first-child { white-space: nowrap; }
+  .fhead > span:first-child { white-space: nowrap; min-width: 0; overflow-wrap: anywhere; }
+  @media (max-width: 560px) { .fhead > span:first-child { white-space: normal; flex: 1 1 100%; } }
   .fnode.answer .fhead { color: var(--accent-ink); }
   .ftext { font-size: var(--f-md); line-height: var(--lh-body); overflow-wrap: anywhere; }
   /* A stored note is DATA: quoted in the machine voice, never paraphrased. */
@@ -755,11 +785,11 @@ export const HTML = `<!doctype html>
   .anchor {
     flex: none; border: 0; background: var(--accent-soft); color: var(--accent-ink);
     border-radius: 99px; padding: 2px var(--s2); cursor: pointer;
-    font: inherit; font-size: 10px; font-weight: 600; letter-spacing: var(--track-badge);
+    font: inherit; font-size: var(--f-2xs); font-weight: 600; letter-spacing: var(--track-badge);
     text-transform: uppercase;
   }
   .exact {
-    flex: none; font-size: 10px; font-weight: 600; letter-spacing: var(--track-badge);
+    flex: none; font-size: var(--f-2xs); font-weight: 600; letter-spacing: var(--track-badge);
     text-transform: uppercase; color: var(--ok-ink); background: var(--ok-soft);
     border-radius: 99px; padding: 2px var(--s2);
   }
@@ -778,7 +808,7 @@ export const HTML = `<!doctype html>
   .flink > :not(.glyph) { grid-column: 2; min-width: 0; }
   .flink .move {
     display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2);
-    font-size: var(--f-sm); font-weight: 650; padding-top: 1px;
+    font-size: var(--f-sm); font-weight: 600; padding-top: 1px;
   }
   .flink .lead {
     font-size: var(--f-sm); color: var(--ink-soft); line-height: var(--lh-snug);
@@ -804,7 +834,7 @@ export const HTML = `<!doctype html>
     padding: var(--s2) 0 0 var(--s2);
   }
   .eqsign {
-    font-family: var(--font-display); font-size: 30px; font-weight: 600;
+    font-family: var(--font-display); font-size: var(--f-hero); font-weight: 600;
     line-height: 1; color: var(--accent);
   }
   .eqval {
@@ -837,7 +867,7 @@ export const HTML = `<!doctype html>
   .voters { display: grid; gap: 3px; margin-top: var(--s2); }
   .voters div {
     font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
-    background: var(--surface); border-radius: 5px; padding: 3px var(--s2);
+    background: var(--surface); border-radius: var(--r-xs); padding: 3px var(--s2);
     overflow-wrap: anywhere;
   }
   .voters p { margin: 2px 0 0; font-size: var(--f-xs); color: var(--ink-faint); }
@@ -848,7 +878,7 @@ export const HTML = `<!doctype html>
   .fanrows { display: grid; gap: 3px; }
   .fanrows > div {
     font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
-    background: var(--surface); border-radius: 5px; padding: 3px var(--s2);
+    background: var(--surface); border-radius: var(--r-xs); padding: 3px var(--s2);
     overflow-wrap: anywhere;
   }
   .fanlines {
@@ -864,13 +894,8 @@ export const HTML = `<!doctype html>
     font-size: var(--f-sm); color: var(--ink-soft); line-height: var(--lh-snug);
   }
   .support svg { flex: none; color: var(--ok); margin-top: 2px; }
-  .support b { color: var(--ink); font-weight: 620; }
-  .morebtn {
-    display: inline-flex; align-items: center; min-height: var(--tap);
-    background: none; border: 0; padding: 0; cursor: pointer; font: inherit;
-    font-size: var(--f-sm); color: var(--accent); text-decoration: underline;
-    text-underline-offset: 3px;
-  }
+  .support b { color: var(--ink); font-weight: 600; }
+
 
   /* ---- what it nearly reached (a silence has a shape too) ---------------- */
   .near { display: grid; gap: var(--s2); }
@@ -894,7 +919,7 @@ export const HTML = `<!doctype html>
     line-height: var(--lh-snug);
   }
   .rung .top { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
-  .rung .name { font-size: var(--f-sm); font-weight: 650; }
+  .rung .name { font-size: var(--f-sm); font-weight: 600; }
   .rung .stat {
     font-size: var(--f-xs); border-radius: 99px; padding: 1px 7px;
     background: var(--surface-2); color: var(--ink-soft);
@@ -946,7 +971,7 @@ export const HTML = `<!doctype html>
   .trow { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: var(--s2); padding: 5px var(--s3); }
   .trow + .trow { border-top: 1px solid var(--line-soft); }
   .trow .ix {
-    font-family: var(--font-machine); font-size: 10px; color: var(--ink-faint);
+    font-family: var(--font-machine); font-size: var(--f-2xs); color: var(--ink-faint);
     text-align: right; padding-top: 4px; font-variant-numeric: tabular-nums;
   }
   .trow .body { min-width: 0; }
@@ -965,16 +990,16 @@ export const HTML = `<!doctype html>
   .dotf.weigh { border-radius: 1px; background: var(--warn); transform: rotate(45deg); }
   .dotf.speak { background: var(--ok); }
   .trow .rep {
-    flex: none; font-size: 10px; font-weight: 600; color: var(--accent-ink);
+    flex: none; font-size: var(--f-2xs); font-weight: 600; color: var(--accent-ink);
     background: var(--accent-soft); border-radius: 99px; padding: 0 6px;
   }
   .trow .dep {
     flex: none; margin-left: auto; font-family: var(--font-machine);
-    font-size: 10px; color: var(--ink-faint);
+    font-size: var(--f-2xs); color: var(--ink-faint);
   }
   .trow .io {
     display: flex; align-items: center; gap: 5px; margin-top: 3px;
-    font-family: var(--font-machine); font-size: 10px; color: var(--ink-faint);
+    font-family: var(--font-machine); font-size: var(--f-2xs); color: var(--ink-faint);
     min-width: 0;
   }
   .trow .io span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1005,7 +1030,7 @@ export const HTML = `<!doctype html>
   details.inline { margin-top: var(--s3); }
   details.inline > summary {
     display: inline-flex; align-items: center; gap: var(--s2);
-    min-height: 34px; cursor: pointer; list-style: none; user-select: none;
+    min-height: 2.125rem; cursor: pointer; list-style: none; user-select: none;
     font-size: var(--f-sm); font-weight: 600; color: var(--accent-ink);
   }
   details.inline > summary::-webkit-details-marker { display: none; }
@@ -1080,9 +1105,11 @@ export const HTML = `<!doctype html>
   /* A thread carries every earlier turn into the next answer, which is why a
      long conversation can drift. That is invisible unless it is stated. */
   .thread {
-    display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s2);
-    font-size: var(--f-xs); color: var(--ink-faint); line-height: var(--lh-snug);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s3);
+    margin-bottom: var(--s2); font-size: var(--f-xs); color: var(--ink-faint);
+    line-height: var(--lh-snug);
   }
+  .thread > span { flex: 1 1 12rem; min-width: 0; }
   .thread button {
     margin-left: auto; flex: none; display: inline-flex; align-items: center; min-height: var(--tap);
     background: none; border: 0; padding: 0; cursor: pointer;
@@ -1118,7 +1145,7 @@ export const HTML = `<!doctype html>
   }
   #q {
     flex: 1; min-width: 0; border: 0; background: none; color: var(--ink); font: inherit;
-    font-size: var(--f-base); line-height: var(--lh-snug); resize: none; max-height: min(150px, 30vh);
+    font-size: var(--f-base); line-height: var(--lh-snug); resize: none; max-height: min(9.375rem, 30vh);
     min-height: var(--tap); padding: 10px 0; outline: none;
   }
   #send {
@@ -1131,11 +1158,15 @@ export const HTML = `<!doctype html>
      inputs set outline:none by id, so they need to be named explicitly to
      win it back — a keyboard user must always be able to see where they are. */
   button:focus-visible, summary:focus-visible, a:focus-visible,
-  #q:focus-visible, #exq:focus-visible, .pair:focus-visible {
+  .pair:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
-  summary:focus-visible { outline-offset: -2px; border-radius: 8px; }
+  /* The two inputs are wrapped in a field that rings itself on focus-within,
+     so they must NOT also draw their own — two concentric marks of different
+     shapes is not a clearer focus state, it is a drawing error. */
+  #q:focus-visible, #exq:focus-visible { outline: none; }
+  summary:focus-visible { outline-offset: -2px; border-radius: var(--r-sm); }
 
   /* A status bar, not a sentence: what it is on the left, how to drive it on the
      right. */
@@ -1144,6 +1175,9 @@ export const HTML = `<!doctype html>
     font-size: var(--f-xs); color: var(--ink-faint); margin: var(--s2) 0 0;
   }
   @media (max-width: 560px) { .foot { display: none; } }
+  /* Enter sends only where there is a key to hold with it, so the line that
+     says so may only appear there. */
+  @media (pointer: coarse) { .foot .keys { display: none; } }
   /* Landscape on a phone is ~360px tall: the composer must not take a third of
      it, and the hint line below it has no business being there at all. */
   @media (max-height: 560px) {
@@ -1151,12 +1185,12 @@ export const HTML = `<!doctype html>
        viewport it meets; its actions have to stay within one screen. */
     #boot { padding: var(--s3) var(--s4); }
     .card { padding: var(--s4); }
-    .hint { display: none; }
+    .hint { font-size: var(--f-2xs); }
   }
   @media (max-height: 460px) {
     .composer { padding: var(--s2) 0; padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom, 0px)); }
     #q { min-height: 38px; max-height: 84px; padding: 7px 0; }
-    .foot, .thread { display: none; }
+    .foot { display: none; }
     .welcome { padding-top: var(--s4); }
   }
 </style>
@@ -1180,6 +1214,7 @@ export const HTML = `<!doctype html>
 
 <!-- ============ boot ============ -->
 <section id="boot">
+ <div class="wrap">
   <div class="card" role="status" aria-live="polite">
     <h1 id="boot-title">Preparing the trained memory</h1>
     <p class="sub" id="boot-sub">Checking the local data directory…</p>
@@ -1198,11 +1233,11 @@ export const HTML = `<!doctype html>
     <div class="files" id="files"></div>
     <div id="boot-error"></div>
     <p class="hint">
-      Sema keeps its knowledge as knowledge — a graph on disk, not weights. The trained
-      store is fetched once from Hugging&nbsp;Face, saved beside this application, and
-      resumed automatically if the transfer is interrupted.
+      Sema keeps its knowledge as knowledge — a graph on disk, not weights. These files
+      are fetched once from Hugging&nbsp;Face and saved beside this application.
     </p>
   </div>
+ </div>
 </section>
 
 <!-- ============ chat ============ -->
@@ -1225,7 +1260,7 @@ export const HTML = `<!doctype html>
           </svg>
         </button>
       </div>
-      <p class="foot"><span>Deterministic · auditable · CPU-only</span><span><b>Enter</b> to send · <b>Shift+Enter</b> for a new line</span></p>
+      <p class="foot"><span>deterministic · auditable · CPU-only</span><span class="keys"><b>Enter</b> to send · <b>Shift+Enter</b> for a new line</span></p>
     </div>
   </div>
 </main>
@@ -1257,13 +1292,16 @@ export const HTML = `<!doctype html>
     if (n == null) return '—';
     var u = ['B', 'KB', 'MB', 'GB'], i = 0;
     while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
-    return n.toFixed(i === 0 ? 0 : 1) + ' ' + u[i];
+    // Precision follows magnitude: 820 MB, not 820.0 MB; 2.2 GB, not 2 GB.
+    return n.toFixed(i === 0 || n >= 100 ? 0 : 1) + ' ' + u[i];
   }
   function duration(s) {
     if (s == null || !isFinite(s)) return '';
-    if (s < 90) return Math.max(1, Math.round(s)) + 's';
+    if (s < 90) return Math.max(1, Math.round(s)) + ' sec';
     var m = Math.round(s / 60);
-    return m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+    if (m < 60) return m + ' min';
+    var h = Math.floor(m / 60), r = m % 60;
+    return r ? h + ' hr ' + r + ' min' : h + ' hr';
   }
   // Long stored sentences are the norm; a chip must stay one line to be scannable.
   function short(t) { return t.length > 52 ? t.slice(0, 51).trimEnd() + '…' : t; }
@@ -1281,6 +1319,18 @@ export const HTML = `<!doctype html>
 
   // Why a file is being fetched again — worth saying out loud, since a
   // re-download of something already on disk otherwise looks like a bug.
+  // What each file IS. Without this the largest block on the first screen
+  // anyone sees is three internal filenames.
+  var FILES = {
+    'sqlite': 'the notes themselves',
+    'content.vec': 'what each note is about',
+    'halo.vec': 'how the notes relate'
+  };
+  function fileRole(name) {
+    for (var k in FILES) if (name.indexOf(k) >= 0) return FILES[k];
+    return '';
+  }
+
   var REASONS = {
     'changed-upstream': 'republished since you downloaded it — fetching the new version',
     'unverified': 'present but unverified, so it is being fetched again',
@@ -1323,6 +1373,9 @@ export const HTML = `<!doctype html>
     var stats = $('boot').querySelector('.stats');
     if (stats) stats.hidden = s.phase === 'error';
     meter.hidden = s.phase === 'error';
+    // The bar goes (there is no progress to show) but the FIGURE stays: how
+    // far it got is exactly what the reader wants here, and "nothing already
+    // downloaded is lost" is the next sentence on the card.
     if (s.phase === 'error') $('graph').classList.remove('on');
 
     if (s.total > 0 && (active || s.have > 0)) {
@@ -1346,7 +1399,7 @@ export const HTML = `<!doctype html>
 
     if (active) {
       $('boot-title').textContent = 'Downloading the trained memory';
-      $('boot-sub').textContent = (s.files || []).length + ' files · ' + bytes(s.total) +
+      $('boot-sub').textContent = plural((s.files || []).length, 'file') +
         ' · resumes automatically if interrupted';
     }
 
@@ -1358,6 +1411,8 @@ export const HTML = `<!doctype html>
         r.state = el('span', 'state');
         head.appendChild(r.state);
         head.appendChild(el('code', null, f.name));
+        var role = fileRole(f.name);
+        if (role) head.appendChild(el('span', 'role', role));
         r.val = el('span', 'val');
         head.appendChild(r.val);
         var m = el('div', 'meter');
@@ -1371,7 +1426,7 @@ export const HTML = `<!doctype html>
       r.bar.style.width = (f.total > 0 ? (f.have / f.total) * 100 : 0).toFixed(2) + '%';
       r.box.className = 'file' + (f.done ? ' is-done' : running ? ' is-running' : ' is-idle');
       r.state.className = 'state' + (f.done ? ' done' : running ? ' active' : '');
-      r.val.textContent = f.done ? 'ready' : bytes(f.have) + ' / ' + bytes(f.total);
+      r.val.textContent = f.done ? 'done' : bytes(f.have) + ' of ' + bytes(f.total);
       r.val.className = 'val' + (f.done ? ' tick' : '');
       r.why.textContent = !f.done && REASONS[f.reason] ? REASONS[f.reason] : '';
     });
@@ -1390,7 +1445,8 @@ export const HTML = `<!doctype html>
         btn.onclick = function () {
           btn.disabled = true;
           btn.textContent = 'Retrying…';
-          fetch('/api/retry', { method: 'POST' }).then(function () {
+          fetch('/api/retry', { method: 'POST' }).then(function (r) {
+            if (!r.ok) throw new Error(httpReason(r.status));
             box.innerHTML = '';
           }).catch(function () {
             btn.disabled = false;
@@ -1445,8 +1501,14 @@ export const HTML = `<!doctype html>
     c.appendChild(d);
     w.appendChild(c);
 
-    w.appendChild(el('div', 'try', 'Explore the training data'));
     var box = el('div', 'explorer');
+    box.appendChild(el('div', 'try', 'Explore the training data'));
+    // A first-time reader has no model of what "a stored note" is, and the
+    // rows alone do not supply one. This says the SHAPE of a note, which
+    // holds for any corpus this app is pointed at.
+    box.appendChild(el('p', 'caption',
+      'This is the memory itself. Each row is one note it was given — some ' +
+      'text, and what it was taught comes after it. Pick one to ask Sema about.'));
 
     var f = el('div', 'ex-field');
     f.innerHTML = svg('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.5-4.5"/>', 15);
@@ -1472,13 +1534,15 @@ export const HTML = `<!doctype html>
     w.appendChild(box);
     log.appendChild(w);
 
-    var shuffle = el('button', 'ex-more', 'Show me other examples');
+
+    var shuffle = el('button', 'linkbtn ex-more', 'Show other examples');
     box.appendChild(shuffle);
 
     function load(q) {
       go.disabled = true;
       shuffle.disabled = true;
       meta.innerHTML = '';
+      meta.className = 'ex-meta';
       meta.appendChild(el('span', 'spin'));
       meta.appendChild(el('span', null, q
         ? 'Content-addressing the query against the graph…'
@@ -1490,11 +1554,18 @@ export const HTML = `<!doctype html>
         }); })
         .then(function (d) { renderPairs(d, list, meta); })
         .catch(function (e) {
-          meta.textContent = 'Search failed: ' + e.message;
-          // A failed search must not be a dead end: offer the same query again.
-          var again = el('button', 'ex-more', 'Try again');
+          meta.textContent = '';
+          meta.className = 'ex-meta bad';
+          meta.appendChild(el('span', null, 'Search failed'));
+          // A failure takes the same shape as an empty result, so the two read
+          // as the same kind of outcome rather than as a styling accident.
+          var box2 = el('div', 'ex-empty');
+          box2.appendChild(el('p', 'ex-empty-title', 'The search did not run'));
+          box2.appendChild(el('p', 'ex-empty-msg', e.message));
+          var again = el('button', 'linkbtn', 'Try again');
           again.onclick = function () { load(q); };
-          list.appendChild(again);
+          box2.appendChild(again);
+          list.appendChild(box2);
         })
         .then(function () { go.disabled = false; shuffle.disabled = false; });
     }
@@ -1553,8 +1624,8 @@ export const HTML = `<!doctype html>
       s1.appendChild(v1);
       b.appendChild(s1);
       b.appendChild(el('span', 'rule'));
-      var s2 = el('span', 'side');
-      s2.appendChild(el('span', 'lbl to', 'It learnt'));
+      var s2 = el('span', 'side learnt');
+      s2.appendChild(el('span', 'lbl', 'It learnt'));
       var v2 = el('span', 'val', p.continuation + (p.continuationTruncated ? '…' : ''));
       v2.dir = 'auto';
       s2.appendChild(v2);
@@ -1569,7 +1640,16 @@ export const HTML = `<!doctype html>
       go.innerHTML = svg('<path d="M5 12h14M13 6l6 6-6 6"/>', 15);
       b.appendChild(go);
       b.setAttribute('aria-label', 'Ask Sema: ' + p.context);
-      b.onclick = function () { $('q').value = p.context; resize(); send(); };
+      b.onclick = function () {
+        var draft = $('q').value.trim();
+        $('q').value = p.context;
+        resize();
+        // With something half-written, loading the question and waiting is the
+        // only safe reading of a tap: sending would throw the draft away, and
+        // a stray tap while scrolling is exactly how that would happen.
+        if (draft) { focusComposer(); return; }
+        send();
+      };
       list.appendChild(b);
     });
   }
@@ -1737,7 +1817,7 @@ export const HTML = `<!doctype html>
     // Sema's own notes are the auditable record and have to stay reachable, but
     // printed inline they put a cost float on every row. One switch, off by
     // default, for the whole panel.
-    var tech = el('button', 'techbtn');
+    var tech = el('button', 'linkbtn quiet techbtn');
     var techOn = false;
     function paintTech() {
       root.className = 'explain' + (techOn ? ' tech' : '');
@@ -1915,8 +1995,8 @@ export const HTML = `<!doctype html>
         links = links.slice(1);
         nodes[0] = Object.assign({}, nodes[0], {
           kind: 'asked',
-          title: 'What you asked — already in memory, word for word',
-          exact: false,
+          title: 'What you asked',
+          exact: true,
         });
       }
 
@@ -2037,7 +2117,7 @@ export const HTML = `<!doctype html>
           st.appendChild(document.createTextNode(
             'of asking also reach this same answer, so it does not rest on one note.'));
           if (n.support.samples.length) {
-            var more = el('button', 'morebtn', 'Show a few');
+            var more = el('button', 'linkbtn', 'Show a few');
             var list = null;
             more.onclick = function () {
               if (list) { list.remove(); list = null; more.textContent = 'Show a few'; return; }
@@ -2357,6 +2437,22 @@ export const HTML = `<!doctype html>
     $('dot').className = 'dot' + (on ? ' busy' : '');
   }
 
+  /** The first question retires the pitch, not the tool. The hero and the
+   *  caveat have been read by then; the explorer has not necessarily been
+   *  finished with, and it holds whatever you typed into it. It stays, at the
+   *  head of the scrollback, one scroll up. */
+  function retireWelcome() {
+    var w = log.querySelector('.welcome');
+    if (!w || w.classList.contains('retired')) return;
+    w.classList.add('retired');
+    ['h2', '.caveat'].forEach(function (sel) {
+      var n = w.querySelector(sel);
+      if (n) n.remove();
+    });
+    var lead = w.querySelector(':scope > p');
+    if (lead) lead.remove();
+  }
+
   function addMessage(role, text) {
     var m = el('div', 'msg ' + (role === 'me' ? 'me' : 'ai'));
     m.appendChild(el('div', 'who', role === 'me' ? 'You' : 'Sema'));
@@ -2454,8 +2550,7 @@ export const HTML = `<!doctype html>
     $('q').value = '';
     resize();
 
-    var w = log.querySelector('.welcome');
-    if (w) w.remove();
+    retireWelcome();
 
     addMessage('me', text);
     turns++;
@@ -2492,11 +2587,13 @@ export const HTML = `<!doctype html>
       .catch(function (err) {
         if (mine !== epoch) return;   // stale: its bubble went with the reset
         pending.bubble.className = 'bubble silent err-bubble';
-        pending.bubble.textContent = /Failed to fetch|NetworkError|load failed/i.test(err.message)
-          ? 'Could not reach the server. It may have stopped — check the terminal it was started from.'
-          : err.message;
+        pending.bubble.textContent = '';
+        pending.bubble.appendChild(el('p', 'err-line',
+          /Failed to fetch|NetworkError|load failed/i.test(err.message)
+            ? 'Could not reach the server. It may have stopped — check the terminal it was started from.'
+            : err.message));
         // A failed turn must not be a dead end: offer the same question again.
-        var again = el('button', 'again', 'Try again');
+        var again = el('button', 'linkbtn again on-error', 'Try again');
         again.onclick = function () {
           pending.msg.remove();
           $('q').value = text; resize(); send();
@@ -2519,9 +2616,12 @@ export const HTML = `<!doctype html>
     var bar = $('thread');
     if (turns < 2) { bar.hidden = true; return; }
     bar.hidden = false;
-    $('thread-txt').textContent =
-      'Sema is also reading the ' + plural(turns - 1, 'earlier turn') +
-      ' in this thread, so answers can drift.';
+    // Three wrapped lines of 11px beside a 44px button, on the screen with the
+    // least room to spare. The narrow phrasing says the same thing.
+    $('thread-txt').textContent = window.matchMedia('(max-width: 560px)').matches
+      ? 'Reading ' + plural(turns - 1, 'earlier turn') + ' \u2014 answers can drift.'
+      : 'Sema is also reading the ' + plural(turns - 1, 'earlier turn') +
+        ' in this thread, so answers can drift.';
   }
 
   // Status codes, in words. The number alone tells a reader nothing.
@@ -2544,7 +2644,10 @@ export const HTML = `<!doctype html>
   /** The field may never take so much of a short viewport that what you are
    *  typing is pushed off the bottom edge. */
   function maxField() {
-    return Math.max(76, Math.min(150, Math.round(viewportH() * 0.28)));
+    // In rem, like the CSS cap it mirrors, so a reader who has set larger
+    // text gets a proportionally taller field rather than the same box.
+    var rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    return Math.max(rem * 4.75, Math.min(rem * 9.375, Math.round(viewportH() * 0.28)));
   }
   function viewportH() {
     return (window.visualViewport && window.visualViewport.height) ||
@@ -2592,11 +2695,12 @@ export const HTML = `<!doctype html>
     }).catch(function (err) {
       var m = addMessage('ai', null);
       m.bubble.className = 'bubble silent err-bubble';
-      m.bubble.textContent = 'Could not start a new conversation (' + err.message +
-        '). Your thread is still here — nothing was lost.';
+      m.bubble.textContent = '';
+      m.bubble.appendChild(el('p', 'err-line', 'Could not start a new conversation (' +
+        err.message + '). Your thread is still here — nothing was lost.'));
       // The same remedy a failed TURN offers: the reader should not have to go
       // hunting for the button that just failed.
-      var again = el('button', 'again', 'Try again');
+      var again = el('button', 'linkbtn again on-error', 'Try again');
       again.onclick = function () { m.msg.remove(); resetThread(); };
       m.bubble.appendChild(again);
     });
