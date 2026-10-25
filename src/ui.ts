@@ -1175,6 +1175,7 @@ export const HTML = `<!doctype html>
      shapes is not a clearer focus state, it is a drawing error. */
   #q:focus-visible, #exq:focus-visible { outline: none; }
   summary:focus-visible { outline-offset: -2px; border-radius: var(--r-sm); }
+  .ex-top h3:focus, .ex-top h3:focus-visible { outline: none; }
 
   /* A status bar, not a sentence: what it is on the left, how to drive it on the
      right. */
@@ -2536,7 +2537,13 @@ export const HTML = `<!doctype html>
       btn.setAttribute('aria-expanded', 'true');
       if (asSheet) {
         closeOpenSheet = close;
-        closer.focus();
+        var head = panel.querySelector('h3');
+        if (head) {
+          head.tabIndex = -1;
+          try { head.focus({ preventScroll: true }); } catch (e) { head.focus(); }
+        } else {
+          closer.focus();
+        }
       } else {
         // Bring the panel's top into view rather than jumping to the bottom of
         // a tall explanation — the reader wants to start at step one.
