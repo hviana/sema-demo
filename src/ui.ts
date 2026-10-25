@@ -339,7 +339,7 @@ export const HTML = `<!doctype html>
   /* A flex column, so the margins below do not collapse into each other —
      as a block container it silently flattened every gap to the larger of
      the two and the grouping rule did nothing at all. */
-  #log { display: flex; flex-direction: column; padding: var(--s2) 0 var(--s5); }
+  #log { display: flex; flex-direction: column; padding: 0 0 var(--s5); }
 
   /* welcome state — scrolls away once the conversation starts */
   .welcome { padding: var(--s6) 0 var(--s2); }
@@ -386,9 +386,9 @@ export const HTML = `<!doctype html>
   }
 
   /* ---------------- training-data explorer ---------------- */
-  .explorer { margin-top: var(--s3); }
-  .explorer > .try { margin-top: 0; }
-  .explorer > .caption { margin: 0 0 var(--s3); }
+  .explorer { margin-top: var(--s6); }
+  .explorer > .try { margin: 0 0 var(--s2); }
+  .explorer > .caption { margin: 0 0 var(--s4); }
   @media (min-width: 1040px) {
     .explorer { width: min(1020px, calc(100vw - var(--s6))); margin-left: 50%; transform: translateX(-50%); }
     .ex-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -412,7 +412,7 @@ export const HTML = `<!doctype html>
   #exgo { flex: 0 0 auto; }
   #exq::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
   .ex-meta {
-    margin: var(--s3) 0 0; font-size: var(--f-xs); color: var(--ink-soft);
+    margin: var(--s2) 0 0; font-size: var(--f-xs); color: var(--ink-soft);
     min-height: 16px; display: flex; align-items: center; gap: var(--s2);
   }
   .ex-meta .dim { color: var(--ink-faint); }
@@ -423,7 +423,7 @@ export const HTML = `<!doctype html>
     animation: spin .7s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .ex-list { margin-top: var(--s3); display: grid; gap: var(--s2); }
+  .ex-list { margin-top: var(--s4); display: grid; gap: var(--s2); }
   .pair {
     position: relative; background: var(--surface); border: 0; border-radius: var(--r);
     box-shadow: var(--elev-1);
@@ -507,7 +507,7 @@ export const HTML = `<!doctype html>
   /* An auditable layer nobody has asked for yet is not an action. */
   .linkbtn.quiet { min-height: 2.125rem; font-weight: 400; color: var(--ink-soft); }
   .linkbtn.quiet:hover { color: var(--accent-ink); }
-  .ex-more { margin-top: var(--s3); }
+  .ex-more { margin-top: var(--s5); }
 
   .msg { margin: var(--s4) 0; display: flex; flex-direction: column; }
   .msg.me { align-items: flex-end; }
