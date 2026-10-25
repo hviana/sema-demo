@@ -349,8 +349,12 @@ export const HTML = `<!doctype html>
   .welcome { padding: var(--s6) 0 var(--s2); }
   /* What is left once the conversation has started: the instrument alone,
      quieter, and no longer claiming the top of the page. */
-  .welcome.retired { padding: var(--s3) 0 var(--s2); }
-  .welcome.retired .try { margin-top: 0; }
+  .welcome.retired {
+    padding: var(--s3) 0 var(--s5);
+    margin-bottom: var(--s7);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .welcome.retired .explorer { margin-top: 0; }
   .welcome h2 {
     margin: 0 0 var(--s3); font-family: var(--font-display); font-size: var(--f-hero);
     font-weight: 600; letter-spacing: -.005em; line-height: var(--lh-tight);
