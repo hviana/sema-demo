@@ -132,20 +132,34 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   scales with it, so a bigger font still buys the same number of words per line.
   Verified by rendering at a 20px root and by a pixel-identical diff at 16.
 
-- **One column, two breakpoints, and a height axis.** `.wrap` is
-  `min(700px, 100%)` for the header, the prose, the chat and the composer — a
-  reading measure is a reading measure, and widening it on a big screen would
-  only make the lines harder to read. The one region that genuinely wants width
-  is the explorer, which is a _scanning_ surface rather than prose: past 1040px
-  it takes its own wider measure and a second column, and nothing else moves.
-  Below that there are two width thresholds (560 for "wide enough for a label
-  gutter", 768 for "room for a step more air") and one height threshold, because
-  **a phone in landscape is 740×360 — wider than any phone breakpoint and
-  shorter than any of them account for.** The explanation sheet, the act
-  gutters, the boot card and the composer all key off the short dimension too.
-  Where a layout can respond without a breakpoint at all it does: the search
-  field states the width its placeholder needs and the button steps down to its
-  own line exactly when that width stops being available.
+- **One column — the same one — at every width.** The reading measure is a
+  token, `--measure`, and every band of the app is `min(var(--measure), 100%)`:
+  header, prose, boot card, conversation, explorer, composer, footer. The page
+  therefore has one left edge and one right edge, and a region cannot quietly
+  grow its own. Past 1040px the token itself steps up one notch and the example
+  cards use that width two-up — the column widens, nothing breaks out of it, and
+  prose keeps its own cap in `ch` so the sentences do not widen with it. Because
+  the conversation scrolls and the header and composer do not, a classic
+  scrollbar used to take its width out of exactly one of the three and shift the
+  centred column 7px: `scrollbar-gutter: stable both-edges` reserves it on both
+  sides, so the line down the page holds whether the bar is there or not. Below
+  1040 there are two width thresholds (560 for "wide enough for a label gutter",
+  768 for "room for a step more air") and one height threshold, because **a
+  phone in landscape is 740×360 — wider than any phone breakpoint and shorter
+  than any of them account for.** The explanation sheet, the act gutters, the
+  boot card and the composer all key off the short dimension too. Where a layout
+  can respond without a breakpoint at all it does: the search field states the
+  width its placeholder needs and the button steps down to its own line exactly
+  when that width stops being available — keeping the trailing edge it has at
+  every other width, rather than jumping to the opposite side of the field.
+
+- **The turn is the unit of rhythm.** One `gap` on the conversation, declared
+  once, and an answer closes half of it to sit with the question above it: 8px
+  inside a turn, 16px between turns, 32px and a hairline where the retired
+  welcome ends and the conversation begins. The gaps used to be margins on the
+  messages, which in a flex column add instead of collapsing — "half inside, the
+  full gap between" shipped as 24 and 32, three-quarters rather than half. A
+  container's gap cannot drift like that.
 
 - **The keyboard is not the viewport.** `interactive-widget=resizes-content` is
   Android-only and `100dvh` tracks retracting browser chrome, not the on-screen
@@ -161,8 +175,11 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   ask something it holds nothing about, and the arithmetic path answers over the
   accumulated context instead of staying silent. From the second turn on, the
   composer says so plainly ("Sema is also reading the 2 earlier turns in this
-  thread, so answers can drift") and offers **Start fresh** beside it; the
-  header carries the same reset, labelled.
+  thread, so answers can drift"). Starting over is the header's job and is
+  labelled there, once — the bar used to carry a second, differently-named
+  button for the same action. What is genuinely out of reach once a conversation
+  has started is the training data, scrolled above every turn, so that is what
+  the bar offers instead.
 - **Any script, either direction.** This store is heavily multilingual, so every
   element holding stored or typed text carries `dir="auto"` — Arabic, Sindhi and
   N'Ko lay out right-to-left while their Latin siblings do not. Counts are
@@ -264,8 +281,21 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
 A failed turn is never a dead end. The chat parses the response as text before
 JSON, so a plain 404 reads as _"That part of the server is missing (404)"_
 rather than _"Unexpected token 'N'"_; an unreachable server says so and points
-at the terminal. Every failed turn carries **Try again**, which removes the dead
-turn and re-asks the same question.
+at the terminal. The explorer speaks the same language for the same status — a
+bare `HTTP 503` reached the reader there until it was pointed at the same
+translation the chat uses. Every failed turn carries **Try again**, which
+removes the dead turn and re-asks the same question — and puts back whatever you
+had typed into the composer in the meantime, since the composer is focused after
+every failure.
+
+A turn that failed does not end by saying the memory is ready. Every turn used
+to finish by writing `ready` into the header, including the one whose whole
+error message was _"The trained memory is not open yet"_; now a failure asks the
+server what its state is instead of asserting one.
+
+**Send is lit only when there is something to send.** The field is empty when
+the app opens, with the caret already in it, and a full-accent button that
+answers a click with nothing is a lie about what the app is waiting for.
 
 Motion respects `prefers-reduced-motion`: the panel entrance and the staged
 arrival of the acts is dropped entirely, along with the progress-bar sheen,
@@ -295,8 +325,10 @@ Tints that carry text are opaque. A `color-mix(…, transparent)` chip composite
 against whatever happens to be behind it, so its real contrast depends on
 context rather than on the palette.
 
-Three live regions announce what changes on its own: the chat log, the download
-card, and the explorer's result line. Every control takes a visible 2px focus
+What announces itself is what changed: each reply is its own live region, along
+with the download card and the explorer's result line. The log as a whole is not
+one — it holds the entire welcome screen, which would have been read out on
+arrival and again after every reset. Every control takes a visible 2px focus
 ring under keyboard focus — verified by dispatching real Tab presses and reading
 the ring off `document.activeElement`, since a programmatic `.focus()` never
 triggers `:focus-visible`. A skip link, first in the tab order, jumps past the

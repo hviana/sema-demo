@@ -41,6 +41,7 @@ export const HTML = `<!doctype html>
     --ok-ink: #376e48;
     --ok-soft: #e8efea;
     --warn: #b07d1f;
+    --warn-ink: #86590a;
     --danger: #b3453a;
     /* One cool hue, for the one place the palette has to carry a CATEGORY
        rather than a meaning: the trace's five families of work. */
@@ -93,6 +94,11 @@ export const HTML = `<!doctype html>
     --lh-snug: 1.4;
     --lh-body: 1.55;
     /* A finger is not a mouse: every tappable control clears this. */
+    /* The reading column, as a token. Every band of the app — header,
+       conversation, composer, foot, explorer — is this wide and no wider, so
+       the page has ONE left edge and ONE right edge at any given width.
+       Nothing breaks out of it; the wide screen steps the token up instead. */
+    --measure: 43.75rem;
     --tap: 2.75rem;  /* 44px — a finger. Relaxed for a mouse below. */
     --r-xs: 0.375rem;  /*  6px — a chip */
     --r-sm: 0.625rem;
@@ -109,6 +115,12 @@ export const HTML = `<!doctype html>
       --s6: 2.5rem;       /* 40px */
       --f-hero: 1.9375rem;/* 31px */
     }
+  }
+  /* A laptop gets the same column, one step wider — enough for the example
+     cards to sit two-up INSIDE it. Prose keeps its own cap in ch, so the
+     column grows without the sentences growing with it. */
+  @media (min-width: 1040px) {
+    :root { --measure: 54rem; }
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -129,6 +141,7 @@ export const HTML = `<!doctype html>
       --ok-ink: #74b587;
       --ok-soft: #1d2a22;
       --warn: #d3aa52;
+      --warn-ink: #d3aa52;
       --danger: #e0796c;
       --cool: #7fa9c6;
       --elev-1: 0 0 0 1px color-mix(in srgb, var(--ink) 9%, transparent),
@@ -161,7 +174,7 @@ export const HTML = `<!doctype html>
      stays comfortable on a wide screen instead of stretching to the viewport.
      The gutter is the mobile one (16px) at every width — mobile first. */
   .wrap {
-    width: min(43.75rem, 100%); margin: 0 auto;
+    width: min(var(--measure), 100%); margin: 0 auto;
     padding-left: max(var(--s4), env(safe-area-inset-left));
     padding-right: max(var(--s4), env(safe-area-inset-right));
   }
@@ -212,16 +225,18 @@ export const HTML = `<!doctype html>
   }
   .icon-btn .lab { display: none; white-space: nowrap; }
   @media (min-width: 560px) { .icon-btn .lab { display: inline; } }
-  @media (pointer: fine) { .icon-btn { min-width: 0; min-height: 36px; } }
+  @media (pointer: fine) { .icon-btn { min-width: 0; } }
+  /* Its padding is a tap target, not a margin: pull it back out so the label
+     ends on the column's edge, like everything else on the page. */
+  .bar > .icon-btn:last-child { margin-right: calc(-1 * var(--s3)); }
   .icon-btn:hover { color: var(--accent-ink); background: var(--surface-2); }
   .icon-btn.on { display: inline-flex; }
   @media (max-width: 560px) { .tag { display: none; } }
 
   /* ---------------- boot ---------------- */
   #boot { flex: 1; display: grid; align-content: safe center; padding: var(--s5) 0; overflow-y: auto; }
-  #boot > .wrap { width: min(43.75rem, 100%); }
   .card {
-    width: min(35rem, 100%); background: var(--surface); border: 0;
+    width: 100%; background: var(--surface); border: 0;
     border-radius: var(--r); box-shadow: var(--elev-1); padding: var(--s5) var(--s5) var(--s4);
   }
   .card h1 {
@@ -271,7 +286,10 @@ export const HTML = `<!doctype html>
     animation: sheen 1.6s linear infinite;
   }
   @keyframes sheen { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
-  .meter.idle > i { width: 100% !important; opacity: .25; animation: blink var(--t-blink) ease-in-out infinite; }
+  /* Indeterminate, drawn as a segment TRAVELLING the track. A full-width
+     fill is the mark for finished, whatever its opacity. */
+  .meter.idle > i { width: 32% !important; opacity: .5; animation: travel 1.5s var(--ease) infinite alternate; }
+  @keyframes travel { from { transform: translateX(0) } to { transform: translateX(212.5%) } }
 
   .stats { display: flex; justify-content: space-between; gap: var(--s3); font-size: var(--f-sm); color: var(--ink-soft); margin-top: var(--s2); }
   .stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -306,6 +324,9 @@ export const HTML = `<!doctype html>
     width: 0.9375rem; height: 0.9375rem; flex: none; border-radius: 50%; display: grid; place-items: center;
     border: 1.5px solid var(--line);
   }
+  /* Begun but not running: the ring carries the accent, so "820 MB of
+     2.2 GB, stopped" does not look identical to "not started". */
+  .state.part { border-color: var(--accent); }
   .state.done { border-color: var(--ok); background: var(--ok); }
   .state.done::after { content: ""; width: 4px; height: 7px; border: solid var(--surface); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) translate(-1px,-1px); }
   .state.active { border-color: var(--accent); border-top-color: transparent; animation: spin .7s linear infinite; }
@@ -339,11 +360,17 @@ export const HTML = `<!doctype html>
   /* ---------------- chat ---------------- */
   #app { flex: 1; display: none; flex-direction: column; min-height: 0; }
   #app.on { display: flex; }
-  #scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
-  /* A flex column, so the margins below do not collapse into each other —
-     as a block container it silently flattened every gap to the larger of
-     the two and the grouping rule did nothing at all. */
-  #log { display: flex; flex-direction: column; padding: 0 0 var(--s5); }
+  /* The conversation scrolls and the header and composer do not, so a classic
+     scrollbar took its width out of ONE of the three and shifted the centred
+     column 7px left of the other two. Reserving the gutter on both edges keeps
+     one vertical line down the page whether the bar is there or not. (Where
+     scrollbars overlay — every phone — this reserves nothing.) */
+  #scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable both-edges; }
+  /* One gap, declared once, on the container: the TURN is the unit of
+     rhythm. Margins on the messages themselves added up here (a flex column
+     does not collapse them), so "half inside, full between" shipped as 24
+     and 32 — three-quarters, not half. A gap cannot drift like that. */
+  #log { display: flex; flex-direction: column; gap: var(--s4); padding: 0 0 var(--s5); }
 
   /* welcome state — scrolls away once the conversation starts */
   .welcome { padding: var(--s6) 0 var(--s2); }
@@ -351,7 +378,7 @@ export const HTML = `<!doctype html>
      quieter, and no longer claiming the top of the page. */
   .welcome.retired {
     padding: var(--s3) 0 var(--s5);
-    margin-bottom: var(--s7);
+    margin-bottom: var(--s4);
     border-bottom: 1px solid var(--line-soft);
   }
   .welcome.retired .explorer { margin-top: 0; }
@@ -396,9 +423,11 @@ export const HTML = `<!doctype html>
   /* ---------------- training-data explorer ---------------- */
   .explorer { margin-top: var(--s6); }
   .explorer > .try { margin: 0 0 var(--s2); }
-  .explorer > .caption { margin: 0 0 var(--s4); }
+  .explorer > .caption { margin: 0 0 var(--s4); max-width: 62ch; }
+  /* The wide screen is handled by --measure, for the whole page at once.
+     Here the list simply uses that width two-up: the explorer sits in the
+     same column as the sentence that introduces it, never astride it. */
   @media (min-width: 1040px) {
-    .explorer { width: min(1020px, calc(100vw - var(--s6))); margin-left: 50%; transform: translateX(-50%); }
     .ex-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .ex-field {
@@ -413,17 +442,23 @@ export const HTML = `<!doctype html>
   .ex-field svg { color: var(--ink-faint); flex: none; }
   #exq {
     /* The basis is the width the placeholder actually needs; below it the
-       button wraps rather than squeezing the field. */
-    flex: 1 1 15rem; min-width: 0; min-height: var(--tap); border: 0; background: none;
+       button wraps rather than squeezing the field. At 15rem it wrapped on a
+       390px phone and cost 48px of height — the one place where the row below
+       is the thing the caption just told the reader to pick from. */
+    flex: 1 1 12rem; min-width: 0; min-height: var(--tap); border: 0; background: none;
     color: var(--ink); font: inherit; font-size: var(--f-base); outline: none; padding: 0;
   }
-  #exgo { flex: 0 0 auto; }
+  /* When the field takes the whole row and the button wraps under it, the
+     button keeps the trailing edge it has at every other width. */
+  #exgo { flex: 0 0 auto; margin-left: auto; }
   #exq::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
   .ex-meta {
     margin: var(--s2) 0 0; font-size: var(--f-xs); color: var(--ink-soft);
-    min-height: 16px; display: flex; align-items: center; gap: var(--s2);
+    min-height: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2);
   }
-  .ex-meta .dim { color: var(--ink-faint); }
+  /* Its own line before its own words are broken: at 320px the count wrapped
+     to two lines and squeezed "4 ms" into "4" / "ms". */
+  .ex-meta .dim { color: var(--ink-faint); white-space: nowrap; }
   .ex-meta.bad { color: var(--danger); font-weight: 600; }
   .spin {
     width: 0.6875rem; height: 0.6875rem; flex: none; border-radius: 50%;
@@ -438,7 +473,11 @@ export const HTML = `<!doctype html>
     padding: var(--s3) calc(var(--s4) + 15px + var(--s3)) var(--s3) var(--s4);
     font-size: var(--f-md); line-height: var(--lh-snug);
     cursor: pointer; transition: var(--t-fast); text-align: left;
-    font-family: inherit; color: var(--ink); width: 100%; display: block;
+    font-family: inherit; color: var(--ink); width: 100%;
+    /* A column, not a block: the grid stretches both cards to the taller
+       one, and a <button> would centre its contents in that extra height —
+       which is what put the two cards' labels out of line with each other. */
+    display: flex; flex-direction: column; align-items: stretch;
   }
   .pair:hover, .pair:active { background: var(--accent-soft); }
   /* The hover tint is darker than the card, so the quiet text on it has to
@@ -517,15 +556,17 @@ export const HTML = `<!doctype html>
   .linkbtn.quiet:hover { color: var(--accent-ink); }
   .ex-more { margin-top: var(--s5); }
 
-  .msg { margin: var(--s4) 0; display: flex; flex-direction: column; }
+  .msg { display: flex; flex-direction: column; }
   .msg.me { align-items: flex-end; }
-  /* A reply belongs to the question above it: half the gap inside a turn, the
-     full gap between turns, so the eye groups them without a rule or a box. */
-  .msg.ai { margin-top: var(--s2); }
+  /* A reply belongs to the question above it: half the gap inside a turn,
+     the full gap between turns, so the eye groups them without a rule or a
+     box. Half of the container's gap, by subtraction from it — and only for
+     an answer that actually follows a question. */
+  .msg.me + .msg.ai { margin-top: calc(var(--s2) - var(--s4)); }
   /* Shrink-wrap to the text: a stretched bubble around three loading dots
      reads as a broken empty box. */
   .bubble {
-    align-self: flex-start; max-width: 90%; padding: var(--s3) var(--s4);
+    align-self: flex-start; max-width: min(90%, 68ch); padding: var(--s3) var(--s4);
     border-radius: var(--r); white-space: pre-wrap; overflow-wrap: anywhere;
     font-size: var(--f-base);
   }
@@ -605,7 +646,9 @@ export const HTML = `<!doctype html>
     font-size: var(--f-xs); font-weight: 600; padding: 3px var(--s3); border-radius: 99px; border: 0;
     background: var(--surface-2); color: var(--ink-soft);
   }
-  .tagx.warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 14%, var(--surface-2)); }
+  /* The tint eats the amber it is made of: 2.82:1 in light. Text on it gets
+     its own ink, as --ok/--ok-ink already does. */
+  .tagx.warn { color: var(--warn-ink); background: color-mix(in srgb, var(--warn) 14%, var(--surface-2)); }
   .techbtn { margin-top: var(--s2); }
   /* The auditable layer: present in the DOM always, shown on request.  Written
      as a :not() so no later component rule can out-specify it and leak the
@@ -1160,7 +1203,7 @@ export const HTML = `<!doctype html>
     flex: none; width: var(--tap); height: var(--tap); border-radius: var(--r-sm); border: 0; cursor: pointer;
     background: var(--accent); color: var(--on-accent); display: grid; place-items: center; transition: var(--t-fast);
   }
-  #send:disabled { opacity: .35; cursor: not-allowed; }
+  #send:disabled { opacity: .45; cursor: not-allowed; }
   #send:active { background: var(--accent-ink); }
   /* A consistent, visible keyboard focus ring on every control. The text
      inputs set outline:none by id, so they need to be named explicitly to
@@ -1253,13 +1296,13 @@ export const HTML = `<!doctype html>
 <main id="app">
   <a class="skip" href="#q">Skip to the question box</a>
   <div id="scroll">
-    <div class="wrap"><div id="log" aria-live="polite" aria-relevant="additions text"></div></div>
+    <div class="wrap"><div id="log"></div></div>
   </div>
   <div class="composer">
     <div class="wrap">
       <div class="thread" id="thread" hidden>
         <span id="thread-txt"></span>
-        <button type="button" id="thread-clear">Start fresh</button>
+        <button type="button" id="thread-explore"></button>
       </div>
       <div class="field">
         <textarea id="q" rows="1" placeholder="Ask Sema something…" aria-label="Ask Sema something" autocomplete="off"></textarea>
@@ -1369,6 +1412,7 @@ export const HTML = `<!doctype html>
       d + ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + h + ' L' + pts[0][0].toFixed(1) + ' ' + h + ' Z');
   }
 
+  var booted = false;
   function renderBoot(s) {
     setState(s.phase === 'opening' ? 'opening' : s.phase);
     $('dot').className = 'dot' + (s.phase === 'ready' ? '' : s.phase === 'error' ? ' bad' : ' busy');
@@ -1432,12 +1476,18 @@ export const HTML = `<!doctype html>
         $('files').appendChild(box);
       }
       var running = !f.done && f.have > 0 && active;
+      // Begun, but not moving: neither "running" nor "not started".
+      var part = !f.done && f.have > 0 && !running;
       r.bar.style.width = (f.total > 0 ? (f.have / f.total) * 100 : 0).toFixed(2) + '%';
       r.box.className = 'file' + (f.done ? ' is-done' : running ? ' is-running' : ' is-idle');
-      r.state.className = 'state' + (f.done ? ' done' : running ? ' active' : '');
+      r.state.className = 'state' + (f.done ? ' done' : running ? ' active' : part ? ' part' : '');
       r.val.textContent = f.done ? 'done' : bytes(f.have) + ' of ' + bytes(f.total);
       r.val.className = 'val' + (f.done ? ' tick' : '');
-      r.why.textContent = !f.done && REASONS[f.reason] ? REASONS[f.reason] : '';
+      // In the present tense, under a transfer that has stopped, beside an
+      // error box that already promises the resume: say it once, where it is
+      // still true.
+      r.why.textContent =
+        !f.done && s.phase !== 'error' && REASONS[f.reason] ? REASONS[f.reason] : '';
     });
 
     var box = $('boot-error');
@@ -1468,7 +1518,10 @@ export const HTML = `<!doctype html>
       box.innerHTML = '';
     }
 
-    if (s.phase === 'ready') {
+    // A reconnect re-reads the status and arrives here again; without the
+    // guard that appends a SECOND hero and explorer under the conversation.
+    if (s.phase === 'ready' && !booted) {
+      booted = true;
       $('boot').style.display = 'none';
       $('app').classList.add('on');
       $('reset').classList.add('on');
@@ -1557,9 +1610,14 @@ export const HTML = `<!doctype html>
         ? 'Content-addressing the query against the graph…'
         : 'Reading notes from the store…'));
       list.innerHTML = '';
-      fetch('/api/explore?limit=' + (q ? 8 : 5) + '&q=' + encodeURIComponent(q))
+      // The list is two-up from 1040px: an odd count there leaves a hole in
+      // the grid where a card should be.
+      var even = window.matchMedia('(min-width: 1040px)').matches;
+      fetch('/api/explore?limit=' + (q ? 8 : (even ? 6 : 5)) + '&q=' + encodeURIComponent(q))
         .then(function (r) { return r.json().then(function (d) {
-          if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d;
+          // The same words the chat uses for the same status — this path was
+          // the one place a bare 'HTTP 503' reached the reader.
+          if (!r.ok) throw new Error((d && d.error) || httpReason(r.status)); return d;
         }); })
         .then(function (d) { renderPairs(d, list, meta); })
         .catch(function (e) {
@@ -1570,7 +1628,10 @@ export const HTML = `<!doctype html>
           // as the same kind of outcome rather than as a styling accident.
           var box2 = el('div', 'ex-empty');
           box2.appendChild(el('p', 'ex-empty-title', 'The search did not run'));
-          box2.appendChild(el('p', 'ex-empty-msg', e.message));
+          box2.appendChild(el('p', 'ex-empty-msg',
+            /Failed to fetch|NetworkError|load failed/i.test(e.message)
+              ? 'Could not reach the server. It may have stopped — check the terminal it was started from.'
+              : e.message));
           var again = el('button', 'linkbtn', 'Try again');
           again.onclick = function () { load(q); };
           box2.appendChild(again);
@@ -2467,6 +2528,11 @@ export const HTML = `<!doctype html>
     m.appendChild(el('div', 'who', role === 'me' ? 'You' : 'Sema'));
     var b = el('div', 'bubble');
     b.dir = 'auto';
+    // The ANSWER is the announcement, not the page it lands on. #log holds the
+    // whole welcome screen, so a live region there read the hero, the caveat
+    // and five example cards at a screen-reader user on arrival and again on
+    // every reset. Each reply announces itself instead.
+    if (role !== 'me') b.setAttribute('aria-live', 'polite');
     if (text) b.textContent = text;
     m.appendChild(b);
     log.appendChild(m);
@@ -2553,14 +2619,21 @@ export const HTML = `<!doctype html>
     msg.appendChild(btn);
   }
 
+  /** What the server says its state is, for the paths that must not guess. */
+  function refreshState() {
+    fetch('/api/status').then(function (r) { return r.json(); }).then(renderBoot)
+      .catch(function () { setState('unavailable'); $('dot').className = 'dot bad'; });
+  }
+
   function send() {
     var text = $('q').value.trim();
     if (!text || busy) return;
+    var failed = false;
     busy = true;
     // A reset while this turn is in flight makes its answer STALE: the epoch
     // guard below drops it instead of pasting it onto a fresh thread.
     var mine = epoch;
-    $('send').disabled = true;
+    syncSend();
     working(true);
     $('q').value = '';
     resize();
@@ -2607,16 +2680,26 @@ export const HTML = `<!doctype html>
           /Failed to fetch|NetworkError|load failed/i.test(err.message)
             ? 'Could not reach the server. It may have stopped — check the terminal it was started from.'
             : err.message));
+        failed = true;
         // A failed turn must not be a dead end: offer the same question again.
         var again = el('button', 'linkbtn again on-error', 'Try again');
         again.onclick = function () {
           pending.msg.remove();
+          // The composer is focused after a failure, so there may well be a
+          // new question in it by now. Retrying the old one must not eat it.
+          var draft = $('q').value;
           $('q').value = text; resize(); send();
+          if (draft.trim()) { $('q').value = draft; resize(); }
         };
         pending.bubble.appendChild(again);
       })
       .then(function () {
-        busy = false; $('send').disabled = false; working(false); focusComposer(); toBottom();
+        busy = false; syncSend();
+        // Only a turn that SUCCEEDED proves the memory is ready. A 503 whose
+        // whole message is "not open yet" used to be followed by the header
+        // writing "ready" over it; ask the server instead of asserting.
+        if (failed) { $('dot').className = 'dot'; refreshState(); } else working(false);
+        focusComposer(); toBottom();
       });
   }
 
@@ -2633,10 +2716,18 @@ export const HTML = `<!doctype html>
     bar.hidden = false;
     // Three wrapped lines of 11px beside a 44px button, on the screen with the
     // least room to spare. The narrow phrasing says the same thing.
-    $('thread-txt').textContent = window.matchMedia('(max-width: 560px)').matches
+    var narrow = window.matchMedia('(max-width: 560px)').matches;
+    $('thread-txt').textContent = narrow
       ? 'Reading ' + plural(turns - 1, 'earlier turn') + ' \u2014 answers can drift.'
       : 'Sema is also reading the ' + plural(turns - 1, 'earlier turn') +
         ' in this thread, so answers can drift.';
+    // Starting a new conversation is the HEADER's job and says so there; the
+    // bar carried a second, differently-named button for the same action.
+    // What was genuinely unreachable once a conversation had started is the
+    // training data, scrolled far above every turn — so the bar offers that.
+    var ex = $('thread-explore');
+    ex.hidden = !log.querySelector('.explorer');
+    ex.textContent = narrow ? 'Training data' : 'Browse the training data';
   }
 
   // Status codes, in words. The number alone tells a reader nothing.
@@ -2648,7 +2739,14 @@ export const HTML = `<!doctype html>
     return 'The server refused that request (' + code + ').';
   }
 
+  /** The one place that decides whether Send is live: an empty field is the
+   *  state the app OPENS in, and a full-accent button that answers a click
+   *  with nothing is a lie about what the app is waiting for. */
+  function syncSend() {
+    $('send').disabled = busy || !$('q').value.trim();
+  }
   function resize() {
+    syncSend();
     var q = $('q');
     q.style.height = 'auto';
     // scrollHeight is an integer and the line box is fractional (15.5 x 1.4),
@@ -2721,9 +2819,16 @@ export const HTML = `<!doctype html>
     });
   }
   $('reset').onclick = resetThread;
-  $('thread-clear').onclick = resetThread;
+  $('thread-explore').onclick = function () {
+    var ex = log.querySelector('.explorer');
+    if (!ex) return;
+    // Scroll it to, and not past: the eyebrow that names it has to come with
+    // it or the reader lands in a list of cards with no heading.
+    ex.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
   $('send').onclick = send;
   $('q').addEventListener('input', resize);
+  syncSend();   // the app opens on an empty field
   var hardKeyboard = window.matchMedia('(pointer: fine)').matches;
   $('q').addEventListener('keydown', function (e) {
     if (!hardKeyboard) return;   // on touch, Enter is a newline
