@@ -291,6 +291,10 @@ export const HTML = `<!doctype html>
     min-width: 0; overflow-wrap: anywhere;
   }
   .file .role { color: var(--ink-faint); }
+  @media (max-width: 560px) {
+    .file .role { flex: 1 0 100%; order: 1; margin-left: calc(0.9375rem + var(--s2)); }
+    .file .val { order: 0; }
+  }
   .file .val { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; }
   .file .meter { height: 0.25rem; transition: opacity var(--t-med); }
   .file.is-done .meter { display: none; }
@@ -306,7 +310,7 @@ export const HTML = `<!doctype html>
   .state.done::after { content: ""; width: 4px; height: 7px; border: solid var(--surface); border-width: 0 1.6px 1.6px 0; transform: rotate(45deg) translate(-1px,-1px); }
   .state.active { border-color: var(--accent); border-top-color: transparent; animation: spin .7s linear infinite; }
   .why-note:not(:empty) {
-    margin: 0 0 var(--s2) calc(15px + var(--s2)); font-size: var(--f-xs);
+    margin: 0 0 var(--s2) calc(0.9375rem + var(--s2)); font-size: var(--f-xs);
     color: var(--ink-faint); line-height: var(--lh-snug);
   }
 
