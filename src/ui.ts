@@ -6,6 +6,9 @@ export const HTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Sema — a mind without weights</title>
+<!-- Inline, because the binary serves no files: without it every single
+     page load logs a 404 for /favicon.ico. A walk across three notes. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2032%2032%27%3E%3Crect%20width%3D%2732%27%20height%3D%2732%27%20rx%3D%277%27%20fill%3D%27%239a5b2c%27%2F%3E%3Cpath%20d%3D%27M8%2022%2016%2011%2024%2018%27%20fill%3D%27none%27%20stroke%3D%27%23fff%27%20stroke-width%3D%272.4%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3Ccircle%20cx%3D%278%27%20cy%3D%2722%27%20r%3D%273.1%27%20fill%3D%27%23fff%27%2F%3E%3Ccircle%20cx%3D%2716%27%20cy%3D%2711%27%20r%3D%273.1%27%20fill%3D%27%23fff%27%2F%3E%3Ccircle%20cx%3D%2724%27%20cy%3D%2718%27%20r%3D%273.1%27%20fill%3D%27%23fff%27%2F%3E%3C%2Fsvg%3E">
 <style>
   :root {
     color-scheme: light dark;
@@ -74,7 +77,6 @@ export const HTML = `<!doctype html>
     --s4: 1rem;       /* 16px */
     --s5: 1.5rem;     /* 24px */
     --s6: 2rem;       /* 32px */
-    --s7: 3rem;       /* 48px */
     /* Type: one size per job. */
     --f-2xs: 0.625rem;    /* 10px — inside a badge, never on its own */
     --f-xs: 0.6875rem;    /* 11px — eyebrows, metadata */
@@ -99,6 +101,9 @@ export const HTML = `<!doctype html>
        the page has ONE left edge and ONE right edge at any given width.
        Nothing breaks out of it; the wide screen steps the token up instead. */
     --measure: 43.75rem;
+    /* The real width of a classic scrollbar, written in by the script below.
+       0 where scrollbars overlay the content. */
+    --sbw: 0px;
     --tap: 2.75rem;  /* 44px — a finger. Relaxed for a mouse below. */
     --r-xs: 0.375rem;  /*  6px — a chip */
     --r-sm: 0.625rem;
@@ -183,6 +188,9 @@ export const HTML = `<!doctype html>
   header {
     border-bottom: 1px solid var(--line); background: var(--bg);
     flex: none; z-index: 5;
+    /* The band that does not scroll reserves what the scroller below it
+       loses, so both centre inside the same box. See #scroll. */
+    padding-right: var(--sbw);
   }
   .bar { display: flex; align-items: center; gap: var(--s3); min-height: 3.5rem; }
   .mark { font-weight: 600; letter-spacing: var(--track-mark); font-size: var(--f-sm); text-transform: uppercase; }
@@ -234,7 +242,7 @@ export const HTML = `<!doctype html>
   @media (max-width: 560px) { .tag { display: none; } }
 
   /* ---------------- boot ---------------- */
-  #boot { flex: 1; display: grid; align-content: safe center; padding: var(--s5) 0; overflow-y: auto; }
+  #boot { flex: 1; display: grid; align-content: safe center; padding: var(--s5) 0; overflow-y: auto; scrollbar-gutter: stable; }
   .card {
     width: 100%; background: var(--surface); border: 0;
     border-radius: var(--r); box-shadow: var(--elev-1); padding: var(--s5) var(--s5) var(--s4);
@@ -297,6 +305,10 @@ export const HTML = `<!doctype html>
   /* The file list is a LIST, not a stack of widgets: hairline between entries,
      the state mark large enough to read at a glance, the name in the machine
      voice and the numbers in tabular figures. */
+  /* The figure carries the air above the meter; with no figure yet, the meter
+     was 3px under the sentence and the empty file list left 60px of nothing. */
+  #figure[hidden] + .meter { margin-top: var(--s5); }
+  .files:empty { display: none; }
   .files { margin-top: var(--s5); display: grid; }
   .file { padding: var(--s3) 0; }
   .file + .file { border-top: 1px solid var(--line-soft); }
@@ -361,11 +373,17 @@ export const HTML = `<!doctype html>
   #app { flex: 1; display: none; flex-direction: column; min-height: 0; }
   #app.on { display: flex; }
   /* The conversation scrolls and the header and composer do not, so a classic
-     scrollbar took its width out of ONE of the three and shifted the centred
-     column 7px left of the other two. Reserving the gutter on both edges keeps
-     one vertical line down the page whether the bar is there or not. (Where
-     scrollbars overlay — every phone — this reserves nothing.) */
-  #scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable both-edges; }
+     scrollbar takes its width out of ONE of the three and the centred column
+     inside it lands half a scrollbar left of the other two.
+     A stable gutter makes that reservation unconditional, and the two bands
+     that do not scroll reserve the same width on the same side — so all three
+     centre inside the same box at EVERY width. Reserving on both edges was the
+     first attempt and was worse: above the measure it agreed, below it the
+     scroller's column lost 15px on each side while the header kept hugging
+     the viewport.
+     --sbw is measured once at startup; where scrollbars overlay — every phone
+     — it is 0 and none of this reserves anything. */
+  #scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
   /* One gap, declared once, on the container: the TURN is the unit of
      rhythm. Margins on the messages themselves added up here (a flex column
      does not collapse them), so "half inside, full between" shipped as 24
@@ -417,13 +435,19 @@ export const HTML = `<!doctype html>
      rules, because a media query adds no specificity and would otherwise lose. */
   @media (min-width: 768px) {
     .welcome > p { font-size: var(--f-base); }
-    .caveat { font-size: var(--f-md); }
+    .caveat, .explorer > .caption { font-size: var(--f-md); }
   }
 
   /* ---------------- training-data explorer ---------------- */
   .explorer { margin-top: var(--s6); }
   .explorer > .try { margin: 0 0 var(--s2); }
-  .explorer > .caption { margin: 0 0 var(--s4); max-width: 62ch; }
+  /* .caption is the micro-species for a figure inside the panel. This one
+     carries the mental model of the whole explorer for a first-time reader, so
+     it is set as the prose it is, and steps up with the other prose at 768. */
+  .explorer > .caption {
+    margin: 0 0 var(--s4); max-width: 62ch;
+    font-size: var(--f-sm); color: var(--ink-soft);
+  }
   /* The wide screen is handled by --measure, for the whole page at once.
      Here the list simply uses that width two-up: the explorer sits in the
      same column as the sentence that introduces it, never astride it. */
@@ -445,7 +469,7 @@ export const HTML = `<!doctype html>
        button wraps rather than squeezing the field. At 15rem it wrapped on a
        390px phone and cost 48px of height — the one place where the row below
        is the thing the caption just told the reader to pick from. */
-    flex: 1 1 12rem; min-width: 0; min-height: var(--tap); border: 0; background: none;
+    flex: 1 1 11rem; min-width: 0; min-height: var(--tap); border: 0; background: none;
     color: var(--ink); font: inherit; font-size: var(--f-base); outline: none; padding: 0;
   }
   /* When the field takes the whole row and the button wraps under it, the
@@ -512,6 +536,11 @@ export const HTML = `<!doctype html>
   }
   @media (min-width: 768px) { .pair .val { -webkit-line-clamp: 3; } }
   .pair .side.learnt .val { color: var(--accent-ink); font-weight: 600; }
+  /* The grid stretches both cards to the taller one. Without this the slack
+     all pooled under the shorter card's last line, so the hairline and the
+     second label sat 17px higher than their neighbours' across one row — a
+     ruled line that does not line up. The first block absorbs it instead. */
+  .pair > .side:first-child { flex: 1 1 auto; }
   .pair .rule { display: block; height: 1px; background: var(--line-soft); margin: var(--s2) 0; }
   /* Shown only for a search hit, where it says WHY this one matched. */
   .pair .sc {
@@ -594,10 +623,12 @@ export const HTML = `<!doctype html>
      brand's — but not the same colour as the sentence above it. */
   .err-line { margin: 0; color: var(--ink); }
   .again {
-    display: flex; margin-top: var(--s2); min-height: 0; padding: var(--s2) 0 0;
+    display: flex; margin-top: var(--s2); padding: var(--s2) 0 0;
     text-decoration: underline; text-underline-offset: 3px;
   }
-  .who { margin-bottom: var(--s1); }
+  /* It names the bubble BELOW it, so it sits closer to that than to the turn
+     above: it was 12px under the question and 9px above its own answer. */
+  .who { line-height: 1; margin-bottom: 6px; }
   /* Kept for assistive tech, which has no alignment or colour to go on. */
   .msg.me .who {
     position: absolute; width: 1px; height: 1px; overflow: hidden;
@@ -657,14 +688,27 @@ export const HTML = `<!doctype html>
   .explain:not(.tech) .rej-raw,
   .explain:not(.tech) .nid,
   .explain:not(.tech) .ns,
+  /* A bare "cost 1" beside a plain sentence is engine vocabulary, and the only
+     thing explaining it was a tooltip, which does not exist on touch. It is an
+     auditable number, so it belongs with the other auditable numbers — one
+     switch away, never lost. */
+  .explain:not(.tech) .cost,
   .explain:not(.tech) .io { display: none; }
+  /* It is a block note under a row by default, but inside the tag strip it is
+     a chip among chips and must sit on their line. */
+  .tags .enote { margin-top: 0; }
   .enote {
     margin-top: var(--s2); font-family: var(--font-machine); font-size: var(--f-xs);
     color: var(--ink-faint); line-height: 1.45; overflow-wrap: anywhere;
   }
-  .legend {
-    margin: 0; padding: var(--s3) var(--s4) 0; font-size: var(--f-sm); color: var(--ink-faint);
-    line-height: var(--lh-snug);
+
+  /* The panel is prose too. Without this its sentences ran the full width of
+     the widened column — 137 characters a line at 1440, against the 62ch the
+     hero beside it keeps — which is the surest way to make a reader who is not
+     technical give up on a paragraph. */
+  .explain .lede, .explain .ex-top p, .explain .tally, .explain .caption,
+  .explain .note-under, .explain .rules p, .explain details.more .inner > p {
+    max-width: 66ch;
   }
 
   /* ---- the explanation, drawn as the structure it describes ---------------
@@ -867,7 +911,7 @@ export const HTML = `<!doctype html>
   }
   .cost {
     font-family: var(--font-machine); font-size: var(--f-xs); font-weight: 500;
-    color: var(--ink-soft); background: var(--surface); border-radius: 99px;
+    color: var(--ink-soft); background: var(--surface-2); border-radius: 99px;
     padding: 1px 7px;
   }
   /* THE CONVERGENCE.  Lines spread across the top of the group and meet one
@@ -921,7 +965,6 @@ export const HTML = `<!doctype html>
     background: var(--surface); border-radius: var(--r-xs); padding: 3px var(--s2);
     overflow-wrap: anywhere;
   }
-  .voters p { margin: 2px 0 0; font-size: var(--f-xs); color: var(--ink-faint); }
   /* THE FAN.  A gutter on the left holds one drawn line per note; the lines
      start at their own rows and meet one point at the bottom, where the arrow
      out of the group begins. "They agree on this" is then a thing you see. */
@@ -950,15 +993,6 @@ export const HTML = `<!doctype html>
 
   /* ---- what it nearly reached (a silence has a shape too) ---------------- */
   .near { display: grid; gap: var(--s2); }
-  .near-row {
-    display: grid; grid-template-columns: minmax(0, 1fr) 68px 34px;
-    gap: var(--s2); align-items: center;
-  }
-  .near-row .t {
-    font-family: var(--font-machine); font-size: var(--f-xs); color: var(--ink-soft);
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .near { display: grid; }
 
   /* ---- the cost ladder ---------------------------------------------------- */
   .ladder { display: grid; gap: 0; }
@@ -1118,7 +1152,9 @@ export const HTML = `<!doctype html>
   /* On a phone the panel is already a sheet that scrolls inside itself, and a
      scroller nested in a disclosure nested in that sheet is a trap: the trace
      ends up behind an inner scrollbar two levels down. Let them grow. */
-  @media (max-width: 560px) {
+  /* The same condition that turns the panel into a sheet — a phone in
+     landscape is 740x360 and gets the sheet, so it needs the relief too. */
+  @media (max-width: 560px), (max-height: 560px) {
     .pane, .tree { max-height: none; }
     .tree .tree-key { position: static; }
   }
@@ -1161,12 +1197,9 @@ export const HTML = `<!doctype html>
     line-height: var(--lh-snug);
   }
   .thread > span { flex: 1 1 12rem; min-width: 0; }
-  .thread button {
-    margin-left: auto; flex: none; display: inline-flex; align-items: center; min-height: var(--tap);
-    background: none; border: 0; padding: 0; cursor: pointer;
-    font: inherit; font-size: var(--f-xs); color: var(--accent);
-    text-decoration: underline; text-underline-offset: 3px;
-  }
+  /* It is the same species as every other text button — it was deviating on
+     size, colour and underline all at once. */
+  .thread .linkbtn { margin-left: auto; flex: none; }
 
   /* Reachable by keyboard, invisible until it is. */
   .skip {
@@ -1183,6 +1216,7 @@ export const HTML = `<!doctype html>
     flex: none; border-top: 1px solid var(--line-soft); background: var(--bg);
     padding: var(--s3) 0 var(--s4);
     padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom, 0px));
+    padding-right: var(--sbw);   /* same reservation as the header */
   }
   /* The one place you type is material, like a card — not another outlined box.
      Focus is answered by a ring plus a deeper step, never by a border colour. */
@@ -1240,7 +1274,7 @@ export const HTML = `<!doctype html>
     .hint { font-size: var(--f-2xs); }
   }
   @media (max-height: 460px) {
-    .composer { padding: var(--s2) 0; padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom, 0px)); }
+    .composer { padding: var(--s2) 0; padding-bottom: calc(var(--s2) + env(safe-area-inset-bottom, 0px)); padding-right: var(--sbw); }
     #q { min-height: 38px; max-height: 84px; padding: 7px 0; }
     .foot { display: none; }
     .welcome { padding-top: var(--s4); }
@@ -1267,9 +1301,15 @@ export const HTML = `<!doctype html>
 <!-- ============ boot ============ -->
 <section id="boot">
  <div class="wrap">
-  <div class="card" role="status" aria-live="polite">
-    <h1 id="boot-title">Preparing the trained memory</h1>
-    <p class="sub" id="boot-sub">Checking the local data directory…</p>
+  <div class="card">
+    <!-- What is announced is the PHASE, which changes a handful of times.
+         The figure, the meter, the counters and the file list are rewritten
+         several times a second for the length of a multi-gigabyte download:
+         inside a live region that is a screen reader talking over itself. -->
+    <div role="status" aria-live="polite">
+      <h1 id="boot-title">Preparing the trained memory</h1>
+      <p class="sub" id="boot-sub">Checking the local data directory…</p>
+    </div>
 
     <div class="figure" id="figure" hidden>
       <div class="pct" id="pct">0<small>%</small></div>
@@ -1280,9 +1320,9 @@ export const HTML = `<!doctype html>
       </svg>
     </div>
 
-    <div class="meter idle" id="total-meter"><i></i></div>
-    <div class="stats"><span id="stat-left">—</span><span id="stat-right"></span></div>
-    <div class="files" id="files"></div>
+    <div class="meter idle" id="total-meter" aria-hidden="true"><i></i></div>
+    <div class="stats" aria-live="off"><span id="stat-left"></span><span id="stat-right"></span></div>
+    <div class="files" id="files" aria-live="off"></div>
     <div id="boot-error"></div>
     <p class="hint">
       Sema keeps its knowledge as knowledge — a graph on disk, not weights. These files
@@ -1302,7 +1342,7 @@ export const HTML = `<!doctype html>
     <div class="wrap">
       <div class="thread" id="thread" hidden>
         <span id="thread-txt"></span>
-        <button type="button" id="thread-explore"></button>
+        <button type="button" class="linkbtn" id="thread-explore"></button>
       </div>
       <div class="field">
         <textarea id="q" rows="1" placeholder="Ask Sema something…" aria-label="Ask Sema something" autocomplete="off"></textarea>
@@ -1569,8 +1609,9 @@ export const HTML = `<!doctype html>
     // rows alone do not supply one. This says the SHAPE of a note, which
     // holds for any corpus this app is pointed at.
     box.appendChild(el('p', 'caption',
-      'This is the memory itself. Each row is one note it was given — some ' +
-      'text, and what it was taught comes after it. Pick one to ask Sema about.'));
+      'This is the memory itself. Each card below is one note it was given — ' +
+      'some text, and what it was taught comes after it. Pick one to ask ' +
+      'Sema about.'));
 
     var f = el('div', 'ex-field');
     f.innerHTML = svg('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.5-4.5"/>', 15);
@@ -1717,7 +1758,10 @@ export const HTML = `<!doctype html>
         // With something half-written, loading the question and waiting is the
         // only safe reading of a tap: sending would throw the draft away, and
         // a stray tap while scrolling is exactly how that would happen.
-        if (draft) { focusComposer(); return; }
+        // Mid-turn send() returns in silence, so the one control a reader
+        // is most likely to tap twice would answer the second tap with
+        // nothing. Load the question and let the composer show it arrived.
+        if (draft || busy) { focusComposer(); return; }
         send();
       };
       list.appendChild(b);
@@ -1874,9 +1918,10 @@ export const HTML = `<!doctype html>
     var tags = el('div', 'tags');
     var hops = x.chain.links.filter(function (l) { return l.move !== 'recognise'; }).length;
     if (!silent && hops) tags.appendChild(el('span', 'tagx', plural(hops, 'move')));
-    // The step count and the milliseconds used to sit here, where "1 move"
-    // beside "159 steps in all" reads as the panel contradicting itself. Both
-    // now live on the trace disclosure, next to the thing they count.
+    // The step count used to sit here, where "1 move" beside "159 steps in
+    // all" reads as the panel contradicting itself; it now lives on the trace
+    // disclosure, next to the thing it counts. The timing stays, but only in
+    // the notes layer — it measures the run, not the reasoning.
     if (x.tookMs != null) tags.appendChild(el('span', 'tagx enote', x.tookMs + ' ms'));
     if (x.provenance && PROVENANCE[x.provenance]) {
       tags.appendChild(el('span', 'tagx' + (x.provenance === 'recall-echo' ? ' warn' : ''),
@@ -2491,6 +2536,18 @@ export const HTML = `<!doctype html>
 
   /* ================= chat ================= */
   var log = $('log'), scroller = $('scroll'), busy = false;
+
+  /* How wide a classic scrollbar is here — 0 where they overlay. The three
+     bands of the page reserve exactly this much so they share one centre. */
+  (function scrollbarWidth() {
+    var probe = document.createElement('div');
+    probe.style.cssText =
+      'position:absolute;top:-9999px;width:100px;height:100px;overflow:scroll';
+    document.body.appendChild(probe);
+    var w = probe.offsetWidth - probe.clientWidth;
+    probe.remove();
+    if (w > 0) document.documentElement.style.setProperty('--sbw', w + 'px');
+  })();
   /** Ready to type, without yanking the view: a plain focus() scrolls the
    *  focused element into view, which on arrival pulls the headline up under
    *  the header. */
@@ -2548,6 +2605,18 @@ export const HTML = `<!doctype html>
     if (e.key === 'Escape' && closeOpenSheet) closeOpenSheet();
   });
 
+  /** Everything that is not the open sheet, taken out of reach. */
+  function inertBehind(on) {
+    ['scroll', 'thread'].forEach(function (id) { mark($(id)); });
+    mark(document.querySelector('header'));
+    mark(document.querySelector('.composer'));
+    function mark(n) {
+      if (!n) return;
+      if (on) n.setAttribute('inert', '');
+      else n.removeAttribute('inert');
+    }
+  }
+
   function attachWhy(msg, x) {
     var btn = el('button', 'why');
     btn.setAttribute('aria-expanded', 'false');
@@ -2562,7 +2631,7 @@ export const HTML = `<!doctype html>
 
     function close() {
       if (!panel) return;
-      if (scrim) { scrim.remove(); scrim = null; }
+      if (scrim) { scrim.remove(); scrim = null; inertBehind(false); }
       var wasSheet = asSheet;
       panel.remove(); panel = null; asSheet = false;
       closeOpenSheet = null;
@@ -2598,6 +2667,12 @@ export const HTML = `<!doctype html>
         scrim = el('div', 'scrim');
         scrim.onclick = close;
         document.body.appendChild(scrim);
+        // The scrim makes it modal to the eye; these make it modal to everyone
+        // else. Without them Tab walks out of the sheet into the composer and
+        // the cards underneath a 38%-black overlay.
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        inertBehind(true);
       }
       msg.appendChild(panel);
       btn.setAttribute('aria-expanded', 'true');
@@ -2712,12 +2787,14 @@ export const HTML = `<!doctype html>
   var epoch = 0;
   function paintThread() {
     var bar = $('thread');
-    if (turns < 2) { bar.hidden = true; return; }
+    // From the first answer on, because that is when the training data goes
+    // out of reach. The drift sentence only applies from the second.
+    if (turns < 1) { bar.hidden = true; return; }
     bar.hidden = false;
     // Three wrapped lines of 11px beside a 44px button, on the screen with the
     // least room to spare. The narrow phrasing says the same thing.
     var narrow = window.matchMedia('(max-width: 560px)').matches;
-    $('thread-txt').textContent = narrow
+    $('thread-txt').textContent = turns < 2 ? '' : narrow
       ? 'Reading ' + plural(turns - 1, 'earlier turn') + ' \u2014 answers can drift.'
       : 'Sema is also reading the ' + plural(turns - 1, 'earlier turn') +
         ' in this thread, so answers can drift.';

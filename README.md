@@ -140,9 +140,15 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   cards use that width two-up — the column widens, nothing breaks out of it, and
   prose keeps its own cap in `ch` so the sentences do not widen with it. Because
   the conversation scrolls and the header and composer do not, a classic
-  scrollbar used to take its width out of exactly one of the three and shift the
-  centred column 7px: `scrollbar-gutter: stable both-edges` reserves it on both
-  sides, so the line down the page holds whether the bar is there or not. Below
+  scrollbar takes its width out of exactly one of the three, and the column
+  centred inside it lands half a scrollbar left of the other two. The scroller
+  reserves that gutter unconditionally (`scrollbar-gutter: stable`) and the two
+  bands that do not scroll reserve the same width on the same side, from a
+  `--sbw` measured once at startup — so all three centre inside the same box at
+  every width, and on a phone, where scrollbars overlay, `--sbw` is `0px` and
+  none of it reserves anything. Reserving on _both_ edges was the first attempt
+  and was worse: above the measure the three agreed, below it the conversation
+  lost 15px on each side while the header went on hugging the viewport. Below
   1040 there are two width thresholds (560 for "wide enough for a label gutter",
   768 for "room for a step more air") and one height threshold, because **a
   phone in landscape is 740×360 — wider than any phone breakpoint and shorter
@@ -152,6 +158,11 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   width its placeholder needs and the button steps down to its own line exactly
   when that width stops being available — keeping the trailing edge it has at
   every other width, rather than jumping to the opposite side of the field.
+
+- **The explanation panel is prose too.** Its sentences carry their own `ch`
+  cap, like the hero's. Without it they ran the full width of the widened column
+  — 137 characters a line at 1440px against the hero's 62 — which is the surest
+  way to lose the reader the panel exists for.
 
 - **The turn is the unit of rhythm.** One `gap` on the conversation, declared
   once, and an answer closes half of it to sit with the question above it: 8px
@@ -333,6 +344,15 @@ ring under keyboard focus — verified by dispatching real Tab presses and readi
 the ring off `document.activeElement`, since a programmatic `.focus()` never
 triggers `:focus-visible`. A skip link, first in the tab order, jumps past the
 explorer and one disclosure per answered turn straight to the question box.
+
+On a phone the explanation is a sheet over a scrim, so it says so: `role`
+`dialog`, `aria-modal`, and everything behind it — the conversation, the header,
+the composer — marked `inert` while it is open, released when it closes. A scrim
+that is modal only to the eye lets Tab walk out of the sheet into controls
+nobody can see. The boot card is no longer one live region either: what is
+announced is the phase, not the figure, the meter, the counters and the file
+list being rewritten several times a second for the length of a multi-gigabyte
+download.
 
 **A finger is not a mouse, and that is a fact about the pointer, not about how
 wide the window is.** The 44px minimum is relaxed by `@media (pointer: fine)`
