@@ -1413,13 +1413,19 @@ export const HTML = `<!doctype html>
   // re-download of something already on disk otherwise looks like a bug.
   // What each file IS. Without this the largest block on the first screen
   // anyone sees is three internal filenames.
-  var FILES = {
-    'sqlite': 'the notes themselves',
-    'content.vec': 'what each note is about',
-    'halo.vec': 'how the notes relate'
-  };
+  // Longest key first: a store is two SQLite files from Sema 1.0.6, and
+  // 'sema.derived.sqlite' contains 'sqlite' too — matched loosely it would be
+  // announced as the notes themselves.
+  var FILES = [
+    ['derived.sqlite', 'the indexes built from them'],
+    ['content.vec', 'what each note is about'],
+    ['halo.vec', 'how the notes relate'],
+    ['sqlite', 'the notes themselves']
+  ];
   function fileRole(name) {
-    for (var k in FILES) if (name.indexOf(k) >= 0) return FILES[k];
+    for (var i = 0; i < FILES.length; i++) {
+      if (name.indexOf(FILES[i][0]) >= 0) return FILES[i][1];
+    }
     return '';
   }
 

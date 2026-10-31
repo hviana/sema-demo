@@ -45,10 +45,29 @@ at all: the banner is invisible there, so without this the app looks like it did
 nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
 binary in Terminal, so on those two the banner is visible either way.
 
-The dependency is **pinned** (`npm:@hviana/sema@1.0.3`) and the lockfile is
+The dependency is **pinned** (`npm:@hviana/sema@1.0.6`) and the lockfile is
 disabled: which engine this app runs is written down where it can be read. Every
 `compile:*` task re-resolves it too, so a binary you ship is never built against
 a stale cached copy.
+
+### What moved between 1.0.3 and 1.0.6
+
+The parts this app reads are the conversation API, the `Store` probes, the
+corpus search, and the rationale — and only the last of those moved. The step
+shapes (`RationaleStep`, `RationaleItem`) and every structured payload
+(`decideGrounding`'s candidates, `narrowDecision`'s margin) are unchanged, as is
+the wording of every note the panel parses. Four things did change:
+
+| In the engine                                                                                                                  | Here                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `regimePrediction` became `regime`, and stopped being a prediction: it is read off the response, once, when it is over         | Renamed, and its sentence no longer claims the engine knew in advance; the payload is v2 (`regime`, `incumbentGrade`)  |
+| The arithmetic unit is a mechanism like any other now, and traces nothing — `computeExtensions` and `evalComputation` are gone | A computed answer is recognised by its **provenance** (`alu`) instead of by a step, and keeps its own hop and headline |
+| `Provenance` is an open string — each mechanism names its own, and the decider's composition is `compose`                      | `compose` joined the routes said in ordinary words; an unknown route still prints its own name rather than breaking    |
+| Recognition can refuse a span on its role, and recall and reference can refuse an answer as unasked                            | `roleRefused`, `unaskedAnchor` and `unaskedPrecedent` are named, along with every other step name the engine can emit  |
+
+`MindOptions.mechanisms` also changed shape (one list of factories, with
+`defaultMechanisms` exported), which this app does not pass — it takes the
+engine as it comes.
 
 ## Build binaries
 
@@ -75,15 +94,21 @@ Sema keeps its knowledge _as knowledge_ — a content-addressed graph on disk, n
 weights. This demo uses the pre-trained store published at
 [`hviana/sema-trained-v1`](https://huggingface.co/buckets/hviana/sema-trained-v1)
 (~3 GB): a `.sqlite` file holding the content-addressed DAG, plus `.content.vec`
-(node gists) and `.halo.vec` (the distributional halo index). `SQliteStore`
-derives all three from one **stem** path, so they sit together and keep their
-published names.
+(node gists) and `.halo.vec` (the distributional halo index). From Sema 1.0.6 a
+store is **layered**: everything re-derivable from the nodes, edges, wholes and
+halos lives in a second file, `.derived.sqlite`, beside the base. `SQliteStore`
+derives them all from one **stem** path, so they sit together and keep their
+published names, and a store trained before the split still opens as the single
+file it is.
 
 ### How it is validated
 
 Nothing about the data is hardcoded — not the file names, not their sizes, not
 how many there are. The bucket's own listing is the source of truth on every
-start, and the stem is discovered from whichever `.sqlite` file it publishes.
+start, and the stem is discovered from whichever `.sqlite` file it publishes —
+the **base** one: a layered store publishes two names ending in `.sqlite`, and
+taking `sema.derived.sqlite` for the stem would send the store looking for a
+`sema.derived.content.vec` that nobody published.
 
 What was downloaded is recorded in `manifest.json` beside the data (name, size,
 content hash, and whether the transfer finished). Comparing that manifest to the
@@ -279,8 +304,12 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   No label in the panel borrows Sema's vocabulary — no _grounding_, _resonance_,
   _schema_, _extraction_, _derivation_. `castSchema` reads "Applying a pattern
   it learnt", `liftAnswer` reads "Separating the answer from how you asked",
-  `evalComputation` reads "Doing the arithmetic". Nothing has to be learnt to
-  follow the story, and the exact terms stay one line below it.
+  `roleRefused` reads "Rejecting a familiar word in an unfamiliar place".
+  Nothing has to be learnt to follow the story, and the exact terms stay one
+  line below it. **Every** step name the engine can emit has one: the table is
+  checked against the names in the installed engine rather than against the ones
+  that happened to come up, so a step nobody has seen yet still arrives in
+  words.
 
   The reading of the rationale lives in its own file, `src/explain.ts`, apart
   from the inference in `src/mind.ts`: what the engine did and what we say about

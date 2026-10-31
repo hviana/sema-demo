@@ -152,11 +152,6 @@ const MECH: Record<string, Mech> = {
     family: "walk",
   },
   prefixCompletion: { label: "Finishing a familiar opening", family: "walk" },
-  computeExtensions: {
-    label: "Spotting something to work out",
-    family: "walk",
-  },
-  evalComputation: { label: "Doing the arithmetic", family: "walk" },
   think: { label: "Putting it together", family: "walk" },
 
   // the walk's own endings
@@ -189,9 +184,119 @@ const MECH: Record<string, Mech> = {
     family: "walk",
   },
 
+  // reading (1.0.6: recognition can now refuse a span on its ROLE)
+  roleRefused: {
+    label: "Rejecting a familiar word in an unfamiliar place",
+    family: "read",
+  },
+
+  // reading, continued — these were always emitted and never named
+  resolveConcepts: {
+    label: "Borrowing a synonym's connection",
+    family: "read",
+  },
+  resolveConnectors: {
+    label: "Filling the joins between what it recognised",
+    family: "read",
+  },
+  companyProfile: {
+    label: "Reading what a thing keeps company with",
+    family: "read",
+  },
+
+  // recalling
+  anchorFallback: {
+    label: "Falling back to a lower-ranked match",
+    family: "recall",
+  },
+  unaskedAnchor: {
+    label: "Refusing a match that answers a different question",
+    family: "recall",
+  },
+  unlicensedSwap: {
+    label: "Refusing a match that swaps a word it was never taught to swap",
+    family: "recall",
+  },
+  displacedFiller: {
+    label: "Refusing a match that speaks its own subject, not yours",
+    family: "recall",
+  },
+
+  // walking
+  askedByUse: {
+    label: "Reading which continuation the question uses",
+    family: "walk",
+  },
+  askedByCoInstance: {
+    label: "Asking other questions built the same way",
+    family: "walk",
+  },
+  coInstanceAnchor: {
+    label: "Refusing a match that is another case of the same frame",
+    family: "walk",
+  },
+  coInstanceRoot: {
+    label: "Finding the same frame with one part changed",
+    family: "walk",
+  },
+  convergenceFrames: {
+    label: "Finding frames where separate parts meet",
+    family: "walk",
+  },
+  convergeDerivations: { label: "Joining two routes that met", family: "walk" },
+  intersectEvidence: {
+    label: "Finding where the separate evidence meets",
+    family: "walk",
+  },
+  confluence: { label: "Joining what the parts turned up", family: "walk" },
+  bridgeMiss: {
+    label: "Joining two pieces with nothing in between",
+    family: "walk",
+  },
+  pivotStep: {
+    label: "Turning on a shared fact and stepping on",
+    family: "walk",
+  },
+  pivotRefused: {
+    label: "Declining a step that answers none of this",
+    family: "walk",
+  },
+  pivotUnasked: {
+    label: "Stopping: nothing further was asked",
+    family: "walk",
+  },
+  alreadyAnswered: {
+    label: "Finding the answer already in the question",
+    family: "walk",
+  },
+  substitute: { label: "Saying it back in your words", family: "walk" },
+  decomposeAnswer: {
+    label: "Splitting an answer into its pieces",
+    family: "walk",
+  },
+  bindPrecedent: {
+    label: "Letting the notes that agree carry it",
+    family: "walk",
+  },
+  precedentLicence: {
+    label: "Checking the agreeing notes are about your question",
+    family: "walk",
+  },
+  unaskedPrecedent: {
+    label: "Refusing notes that agree about something else",
+    family: "walk",
+  },
+  restatedSpan: {
+    label: "Dropping a piece that only repeats the question",
+    family: "walk",
+  },
+
   // weighing
-  regimePrediction: {
-    label: "Working out what kind of question this is",
+  // Up to 1.0.3 this was `regimePrediction`, declared BEFORE the market ran.
+  // From 1.0.6 it is `regime`, read off the response once it is over: what the
+  // market actually did, not what it expected to do.
+  regime: {
+    label: "What kind of question this turned out to be",
     family: "weigh",
   },
   runAhead: {
@@ -365,24 +470,14 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
   validateAnalogy: () =>
     "It checked whether the analogy accounted for everything, and it did not.",
   bindReferenceMiss: () => "It needed two notes that agree and found fewer.",
-  regimePrediction: (n) =>
+  regime: (n) =>
     n.startsWith("retrieval")
-      ? "It worked out this is a look-up, not a construction — so the expensive routes were never going to win and were not run."
-      : "It worked out this needs building rather than looking up, so every route was put in play.",
+      ? "This turned out to be a look-up rather than a construction: the routes that build an answer out of several notes were not needed."
+      : "This needed building rather than looking up, so the routes that compose an answer out of several notes were put in play.",
   runAhead: () =>
     "Two routes were in play and the cheaper one ran first, so whatever it found puts a ceiling on what the dearer one could have won.",
   prefixCompletion: () =>
     "Your opening matched one it had seen, so it finished it the way it was taught.",
-  computeExtensions: (n) => {
-    const c = num(n, /evaluated (\d+) computation/);
-    return c
-      ? `It spotted ${
-        c === 1 ? "a sum" : `${c} sums`
-      } to work out rather than recall.`
-      : "It spotted something to calculate.";
-  },
-  evalComputation: () =>
-    "It worked the sum out exactly. This is arithmetic, not a remembered fact — it is right because it was computed.",
   think: () =>
     "It settled on an answer, worked forward from it, and combined what the different parts of your question turned up.",
   disambiguate: (n, answered) => {
@@ -439,8 +534,6 @@ const EMPTY: Record<string, string> = {
   counterfactual: "No learnt pattern applied to this.",
   castSchema: "No learnt pattern applied to this.",
   projectCounterfactual: "There was no pattern to substitute into.",
-  computeExtensions: "There was nothing here to calculate.",
-  evalComputation: "There was nothing here to calculate.",
   climbConsensus: "The pieces of your question did not agree on a topic.",
   "pool-vote": "The evidence did not pool onto any one topic.",
   resonate: "Nothing in memory resonated with this.",
@@ -508,6 +601,8 @@ const ROUTE: Record<string, string> = {
   extraction: "copy how a worked example does it",
   reference: "let several notes that agree carry the answer",
   join: "derive through a fact it already held",
+  // 1.0.6: the decider's own composition of several mechanisms' pieces.
+  compose: "build the answer out of several notes at once",
   analogy: "answer by analogy with something similar",
   alu: "work the arithmetic out",
 };
@@ -608,7 +703,7 @@ const ALWAYS_RAN = new Set([
   "articulate",
   "postGrounding",
   "completeGrounding",
-  "regimePrediction",
+  "regime",
 ]);
 
 /** Which route each mechanism's silence belongs to. Read in two places — the
@@ -623,7 +718,6 @@ const ROUTE_OF: Record<string, string> = {
   bindReference: "reference",
   referenceLicence: "reference",
   crossRegion: "confluence",
-  evalComputation: "alu",
   tryAnalog: "analogy",
 };
 
@@ -834,7 +928,7 @@ const TRACE_CAP = 900;
  *  MEANT. The first one present on a hop names it. */
 const CARRIES: Array<[string, string, string]> = [
   [
-    "evalComputation",
+    "alu",
     "worked the sum out",
     "The answer was computed, not recalled — which is why it is exact.",
   ],
@@ -1336,25 +1430,22 @@ function buildChain(
   // a shape of its own. Drawing any of them as a note it "followed" would be a
   // fiction, so each is drawn as what it is.
 
-  // COMPUTED.  Arithmetic reaches an answer that is in no note at all — the
-  // engine's own result node is negative, meaning nothing in the store holds
-  // it. That is the most interesting thing about such an answer and it was
-  // being reported as "the answer came out of this route".
-  const sum = lastOf(
-    steps,
-    "evalComputation",
-    (s) =>
-      !abstained("evalComputation", s.note ?? "", s.outputs.length > 0) &&
-      clean(s.outputs[0]?.text ?? "") === answer,
-  );
-  if (sum) {
+  // COMPUTED.  Arithmetic reaches an answer that is in no note at all. That is
+  // the most interesting thing about such an answer, and it was being reported
+  // as "the answer came out of this route".
+  //
+  // It is read off the PROVENANCE, not off a step. The arithmetic unit used to
+  // report its own `evalComputation` into the rationale; from 1.0.6 it is a
+  // mechanism like any other, with no tracing of its own, and the one place it
+  // signs its work is the provenance of the answer it grounded.
+  if (provenance === "alu") {
     links.push({
-      move: "evalComputation",
+      move: "alu",
       label: "worked it out",
       plain:
         "This answer is in none of its notes: it was computed. That is why it is exact, and why it can be right about a sum it was never taught.",
       cost: null,
-      note: sum.note ?? "",
+      note: "",
     });
     nodes.push({
       id: "answer",
@@ -1508,14 +1599,12 @@ function readWeighing(
   provenance: string | null,
   outcome: Explanation["outcome"],
 ): Weighing {
-  const regimeStep = lastOf(steps, "regimePrediction");
+  // `regime` payload v2 (1.0.6): the regime and the incumbent's grade. v1
+  // (`regimePrediction`, up to 1.0.3) also carried the climb floor and the
+  // bound, which were a prediction's workings — the step no longer predicts.
+  const regimeStep = lastOf(steps, "regime");
   const regimeData = regimeStep?.data as
-    | {
-      regime?: string;
-      incumbentGrade?: number | null;
-      climbFloorGrade?: number;
-      boundGrade?: number;
-    }
+    | { regime?: string; incumbentGrade?: number | null }
     | undefined;
   const regime = regimeData?.regime ??
     (/^(\w+) regime/.exec(regimeStep?.note ?? "")?.[1] ?? null);
@@ -1534,9 +1623,7 @@ function readWeighing(
   const incumbent = winner?.grade ??
     (typeof regimeData?.incumbentGrade === "number"
       ? regimeData.incumbentGrade
-      : typeof regimeData?.boundGrade === "number"
-      ? regimeData.boundGrade
-      : num(regimeStep?.note ?? "", /(?:incumbent )?grade (\d+)/));
+      : null);
 
   // Two separate readings, kept apart because they answer different questions.
   // A FLOOR is what a route would cost at best — a fact about the route, true
@@ -1846,7 +1933,7 @@ function headlineOf(
   // produced the headline "It worked the sum out" directly above a chain whose
   // only arrow said no such move was recorded. When the chain has no hop, the
   // honest headline says where the answer came from, not how.
-  if (chain.links.some((l) => l.move === "evalComputation")) {
+  if (chain.links.some((l) => l.move === "alu")) {
     return "It worked the answer out exactly \u2014 computed, not recalled.";
   }
   return provenance

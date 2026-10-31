@@ -114,12 +114,24 @@ async function listRemote(): Promise<RemoteFile[]> {
 }
 
 /** The stem SQliteStore should open, given a set of file names.  Derived from
- *  whichever `.sqlite` file is present rather than assumed to be "sema". */
+ *  whichever `.sqlite` file is present rather than assumed to be "sema".
+ *
+ *  THE BASE, never the derived layer.  From Sema 1.0.6 a store is two SQLite
+ *  files — `<stem>.sqlite` holds the nodes, edges, wholes and halos, and
+ *  `<stem>.derived.sqlite` holds everything re-derivable from them — so a
+ *  bucket publishing both offers two names ending in `.sqlite`, and taking the
+ *  wrong one yields the stem `sema.derived`, whose every sibling file is
+ *  missing.  (A store trained before the layers were separated publishes the
+ *  one file and opens exactly as it did.) */
+const DERIVED_SUFFIX = ".derived.sqlite";
 function stemFrom(names: string[]): string {
-  const db = names.find((n) => n.endsWith(".sqlite"));
+  const dbs = names.filter((n) => n.endsWith(".sqlite"));
+  const db = dbs.find((n) => !n.endsWith(DERIVED_SUFFIX));
   if (!db) {
     throw new Error(
-      "No .sqlite file was published, so the store's stem cannot be determined.",
+      dbs.length === 0
+        ? "No .sqlite file was published, so the store's stem cannot be determined."
+        : "Only a derived layer was published, without the base .sqlite it is derived from.",
     );
   }
   return db.slice(0, -".sqlite".length);
