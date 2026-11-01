@@ -52,7 +52,6 @@ interface Mech {
 
 const MECH: Record<string, Mech> = {
   // reading the question
-  perceive: { label: "Cutting your question into pieces", family: "read" },
   recognise: { label: "Looking the pieces up in memory", family: "read" },
   unaskedFragments: {
     label: "Setting aside pieces that answer other questions",
@@ -83,14 +82,6 @@ const MECH: Record<string, Mech> = {
   },
   fuseAttention: { label: "Joining parts learnt separately", family: "recall" },
   absorbForward: { label: "Carrying the chain one step on", family: "walk" },
-  bindReferenceMiss: {
-    label: "Needing two notes that agree, and finding fewer",
-    family: "walk",
-  },
-  askedContinuationMiss: {
-    label: "No continuation your question names",
-    family: "walk",
-  },
 
   // walking the graph
   "follow-edge": {
@@ -101,6 +92,26 @@ const MECH: Record<string, Mech> = {
     label: "Deriving through a fact it already held",
     family: "walk",
   },
+  // The engine names a chain's own moves by the move (`traceDerivation`), so
+  // these reach the panel as mechanisms like any other and need the same
+  // plain words.  `axiom` opens a chain and `voice` closes one, which is why
+  // neither is a walking move.
+  axiom: { label: "Starting from a piece it already knew", family: "read" },
+  "concept-hop": {
+    label: "Crossing to a note that means the same",
+    family: "walk",
+  },
+  "splice-connector": {
+    label: "Joining two halves with wording it was taught",
+    family: "walk",
+  },
+  split: { label: "Cutting at the edge of a known piece", family: "walk" },
+  fuse: { label: "Joining neighbouring pieces into one", family: "walk" },
+  recompose: {
+    label: "Rebuilding the pieces into a whole it knows",
+    family: "walk",
+  },
+  step: { label: "One more move along the chain", family: "walk" },
   deriveThroughMiss: {
     label: "Looking for a second fact and finding none",
     family: "walk",
@@ -130,6 +141,10 @@ const MECH: Record<string, Mech> = {
     family: "walk",
   },
   cover: { label: "Putting the chosen steps in order", family: "walk" },
+  compose: {
+    label: "Building the answer out of several notes",
+    family: "walk",
+  },
   ground: { label: "Reaching a stored answer", family: "walk" },
   reason: { label: "Going one step past what it recognised", family: "walk" },
   castSchema: { label: "Applying a pattern it learnt", family: "walk" },
@@ -326,6 +341,7 @@ const MECH: Record<string, Mech> = {
     family: "speak",
   },
   articulate: { label: "Rewording it to match how you asked", family: "speak" },
+  voice: { label: "Giving it back in the words you used", family: "speak" },
   respond: { label: "Giving the answer back", family: "speak" },
   respondTurn: { label: "Giving the answer back", family: "speak" },
 };
@@ -351,7 +367,6 @@ function num(note: string, re: RegExp): number | null {
  *  whoever is debugging a cost ladder; this is the same fact for someone who has
  *  never heard of one. The note itself is kept alongside, never replaced. */
 const DID: Record<string, (note: string, answered: boolean) => string> = {
-  perceive: () => "It cut your question along its own boundaries.",
   recognise: (n) => {
     const forms = num(n, /into (\d+) learnt form/);
     const seen = num(n, /over (\d+) perceived leaves/);
@@ -396,6 +411,21 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
     "This is the move that carries the answer: it had been given a note saying this text is followed by that text.",
   "derive-through": () =>
     "It took the subject the first note was about and looked that subject up again, so the answer comes from a second note rather than from the first alone.",
+  axiom: () =>
+    "This is where a chain starts: a piece of your question it recognised outright, taken as given.",
+  "concept-hop": () =>
+    "There was no connection to follow from here, so it crossed to a note that means the same thing and followed that one instead.",
+  "splice-connector": () =>
+    "It had two halves of an answer and wording it had been taught joins them, so it put them together with it.",
+  split: () =>
+    "It cut what it had at the edge of a smaller piece it knows, so that piece could be reached on its own.",
+  fuse: () =>
+    "It joined two neighbouring pieces into one, because what it holds is filed under the pair and not under either half.",
+  recompose: () =>
+    "The joined pieces turned out to name a whole it already holds, so it carried on from that whole.",
+  step: () => "One more move along the chain, of a kind it does not name.",
+  voice: () =>
+    "It had the answer, and gave it back in your wording rather than the wording it stored.",
   deriveThroughMiss: () =>
     "It looked for a note filed under the subject it had just reached and found none, so it kept looking instead of stopping.",
   askedContinuation: (n) => {
@@ -452,6 +482,8 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
     "It swapped in something it had been taught means the same thing.",
   cover: () =>
     "Nothing may be left unexplained, so this checks the chosen steps line up end to end across your whole question.",
+  compose: () =>
+    "No single note answered this, so it built the answer out of several, covering your sentence stretch by stretch.",
   ground: () =>
     "The end of the chain landed on text it had actually been given. That text is what becomes the answer.",
   liftAnswer: () =>
@@ -542,6 +574,7 @@ const EMPTY: Record<string, string> = {
   bridge: "It could not bridge the gap in the sentence.",
   "follow-edge": "There was no learnt connection to follow from here.",
   cover: "It could not assemble a chain that reached an answer.",
+  compose: "The notes it had could not be built into one answer.",
   ground: "No chain reached a stored answer.",
   liftAnswer: "There was no recognised region to lift out.",
   think:
@@ -599,6 +632,11 @@ const ROUTE: Record<string, string> = {
   cast: "transfer a pattern it learnt from examples",
   confluence: "join separate parts of your question",
   extraction: "copy how a worked example does it",
+  // Two vocabularies meet in this table: the cost ladder names a route the way
+  // the mechanism is registered (`extraction`), and an answer is signed with
+  // the provenance that mechanism declares (`extract`).  One route, two
+  // spellings, and the reader must never meet either of them.
+  extract: "copy how a worked example does it",
   reference: "let several notes that agree carry the answer",
   join: "derive through a fact it already held",
   // 1.0.6: the decider's own composition of several mechanisms' pieces.

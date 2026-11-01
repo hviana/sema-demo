@@ -34,12 +34,46 @@ export class SemaService {
   #queue: Promise<unknown> = Promise.resolve();
 
   /** Open the trained store at `stem` — the path SQliteStore appends
-   *  `.sqlite` / `.content.vec` / `.halo.vec` to. */
+   *  `.sqlite` / `.derived.sqlite` / `.content.vec` / `.halo.vec` to. */
   open(stem: string): Mind {
     if (!this.#mind) {
       this.#mind = new Mind({ store: new SQliteStore({ path: stem }) });
     }
     return this.#mind;
+  }
+
+  /** Bring the store's DERIVED layer level with its base, when it is behind.
+   *
+   *  From Sema 1.0.7 the derived layer — the reverse index, containment, the
+   *  content and canonical indexes, everything that is a function of the notes
+   *  rather than a note — lives in its own `<stem>.derived.sqlite`, and a
+   *  memory trained before that split publishes only the base.  The engine
+   *  opens either one and says which it got: `derivedLag()` is null when the
+   *  layer is current, and otherwise the first node it has never seen — 0 when
+   *  there is no layer at all.  A layer that is behind makes reads "degrade,
+   *  never mislead": the answers stay honest and quietly get worse, which is
+   *  the one failure a demo built to show its reasoning must not serve without
+   *  saying so.
+   *
+   *  `repairDerived` is the engine's own remedy and a batch over the whole
+   *  store — minutes, not milliseconds — so it runs HERE, once, before the
+   *  first question, and stamps the layer current so a restart never repeats
+   *  it.
+   *
+   *  Asking and rebuilding are two calls because the caller has to be able to
+   *  say what it is about to do BEFORE it takes the minutes to do it. */
+  needsDerived(): boolean {
+    const mind = this.#mind;
+    if (!mind) throw new Error("The trained memory is not open yet.");
+    // Null is current.  0 is a layer that was never written — and 0 is falsy,
+    // so this is a comparison and not a truthiness test.
+    return mind.store.derivedLag() !== null;
+  }
+
+  async catchUpDerived(): Promise<void> {
+    const mind = this.#mind;
+    if (!mind) throw new Error("The trained memory is not open yet.");
+    await mind.repairDerived();
   }
 
   /** Run `fn` on the Mind with the same serialisation chat uses, so a search

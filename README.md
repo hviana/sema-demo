@@ -45,12 +45,12 @@ at all: the banner is invisible there, so without this the app looks like it did
 nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
 binary in Terminal, so on those two the banner is visible either way.
 
-The dependency is **pinned** (`npm:@hviana/sema@1.0.6`) and the lockfile is
+The dependency is **pinned** (`npm:@hviana/sema@1.0.7`) and the lockfile is
 disabled: which engine this app runs is written down where it can be read. Every
 `compile:*` task re-resolves it too, so a binary you ship is never built against
 a stale cached copy.
 
-### What moved between 1.0.3 and 1.0.6
+### What moved between 1.0.3 and 1.0.7
 
 The parts this app reads are the conversation API, the `Store` probes, the
 corpus search, and the rationale — and only the last of those moved. The step
@@ -68,6 +68,13 @@ the wording of every note the panel parses. Four things did change:
 `MindOptions.mechanisms` also changed shape (one list of factories, with
 `defaultMechanisms` exported), which this app does not pass — it takes the
 engine as it comes.
+
+**1.0.7** did not touch the rationale at all: the 74 step names, every payload
+and every note template are identical to 1.0.6's, and the near-dedup rewrite
+behind it (a `whole_kid` range read in place of a parent climb) is training work
+this app never does. What it did move is the **store**: the fallback that opened
+a pre-layer store as one file is gone, so such a store now opens as a base with
+no derived layer beside it. See [How it is validated](#how-it-is-validated).
 
 ## Build binaries
 
@@ -98,8 +105,18 @@ weights. This demo uses the pre-trained store published at
 store is **layered**: everything re-derivable from the nodes, edges, wholes and
 halos lives in a second file, `.derived.sqlite`, beside the base. `SQliteStore`
 derives them all from one **stem** path, so they sit together and keep their
-published names, and a store trained before the split still opens as the single
-file it is.
+published names.
+
+A memory trained before that split publishes only the base, and from 1.0.7 the
+engine no longer reads a derived table out of it: it opens the base, finds no
+layer beside it, and says so through `derivedLag()` — null when the layer is
+current, otherwise the first node it has never seen. Reads from a layer that is
+behind _degrade, never mislead_: the answers stay honest and quietly get worse,
+which is the one failure a demo built to show its reasoning must not serve in
+silence. So the app asks before the first question, and when the layer is
+missing it runs the engine's own remedy, `Mind.repairDerived()`, during the
+opening phase and says that is what it is doing. It is minutes on a large memory
+and it happens once — the rebuild stamps the layer current.
 
 ### How it is validated
 
@@ -120,6 +137,19 @@ live listing tells the four cases apart:
 | Transfer never finished                    | **resumed** via HTTP range request                                     |
 | Bucket republished the file (hash changed) | re-fetched **from zero** — resuming would splice two versions together |
 | Files with no manifest                     | trusted only if the size matches exactly, else re-fetched              |
+| Rebuilt by the engine while opening        | held to the published **hash** only — its size is its own now          |
+
+That last row is what keeps the rebuild above from looping. Rebuilding the
+derived layer rewrites everything beside the base — `.derived.sqlite`,
+`.content.vec`, `.halo.vec` are worked out from the notes rather than being
+notes — so their bytes stop being the bytes the bucket published. The size test
+exists to catch a half-written download, and left alone it would read a
+legitimately rebuilt index as a truncated one: fetch it again, rebuild it again,
+find it wrong again on the next start, for ever. The manifest marks those files
+by **role** (the base is the one file the stem names; everything else is
+derived), never by measuring — SQLite keeps a freshly written index in its
+write-ahead log until the database closes, so the sizes are not final at the
+moment this runs.
 
 If the bucket is unreachable, a fully-validated local copy still starts offline;
 an incomplete one fails loudly rather than opening a truncated store.
@@ -309,7 +339,13 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   line below it. **Every** step name the engine can emit has one: the table is
   checked against the names in the installed engine rather than against the ones
   that happened to come up, so a step nobody has seen yet still arrives in
-  words.
+  words. All ninety of them: the 74 the engine writes as literals, the two names
+  composition enters under (`cover` with nothing in hand, `compose` with pieces
+  already), the two a response is entered under, the refusal the graph search
+  reports by hand, and the thirteen **moves** — `axiom`, `follow-edge`,
+  `concept-hop`, `voice`, `splice-connector`, `split`, `fuse`, `recompose`,
+  `derive-through`, `bridge`, `pool-vote`, `ground`, `step` — which a chain's
+  own steps are named after, and which no list of literals contains.
 
   The reading of the rationale lives in its own file, `src/explain.ts`, apart
   from the inference in `src/mind.ts`: what the engine did and what we say about

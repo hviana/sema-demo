@@ -274,10 +274,35 @@ boot.subscribe((st) => {
   );
 });
 
-boot.ensure(async (stem) => {
+boot.ensure(async (stem, say) => {
   console.log(`  ${label("Trained memory")}validated`);
   console.log(`  ${label("Opening store")}${stem}`);
-  explore.attach(sema.open(stem));
+  const mind = sema.open(stem);
+
+  // A memory trained before Sema split the store into a base and a derived
+  // layer arrives without that layer, and an engine reading one that is behind
+  // answers worse without ever saying so.  Rebuilding it is minutes of work on
+  // a large memory, so it is announced rather than hidden inside "opening".
+  const rebuilding =
+    "This memory was built by an earlier engine. Rebuilding what it works " +
+    "out from its notes — once, then never again…";
+  if (sema.needsDerived()) {
+    say(rebuilding);
+    console.log(`  ${label("Derived layer")}missing — rebuilding it once`);
+    const t0 = performance.now();
+    await sema.catchUpDerived();
+    // The rebuild rewrote everything beside the base, so what is on disk is
+    // no longer what the bucket published: record that, or the next start
+    // reads those files as half-downloaded and fetches them all over again.
+    await boot.markRebuilt();
+    console.log(
+      `  ${label("Derived layer")}rebuilt in ${
+        Math.round((performance.now() - t0) / 1000)
+      }s`,
+    );
+  }
+
+  explore.attach(mind);
   console.log(
     `  ${label("Learnt contexts")}${explore.totalContexts().toLocaleString()}`,
   );

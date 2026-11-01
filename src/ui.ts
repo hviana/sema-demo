@@ -1502,6 +1502,16 @@ export const HTML = `<!doctype html>
         ' · resumes automatically if interrupted';
     }
 
+    // Opening is usually a moment and is sometimes minutes: a memory trained
+    // by an earlier engine has its derived layer rebuilt first.  The finished
+    // download bar would sit at 100% and perfectly still through all of it,
+    // which reads as a hang, so the bar goes back to its travelling ghost and
+    // the message underneath says what is being done.
+    if (s.phase === 'opening') {
+      meter.classList.remove('live');
+      meter.classList.add('idle');
+    }
+
     (s.files || []).forEach(function (f) {
       var r = rows[f.name];
       if (!r) {
@@ -2146,7 +2156,7 @@ export const HTML = `<!doctype html>
         // all, and drawing it as box-arrow-box made it identical to an answer
         // that followed a learnt connection — the same silhouette for the two
         // most different things the engine does. It gets an equals sign.
-        if (i && links[i - 1].move === 'evalComputation') {
+        if (i && links[i - 1].move === 'alu') {
           var eq = el('div', 'equation');
           eq.appendChild(el('span', 'eqsign', '='));
           var eqv = el('div', 'eqval', n.text);
@@ -2326,18 +2336,24 @@ export const HTML = `<!doctype html>
           '</b> different ways of reaching an answer, and not one of them came back ' +
           'with something it could stand behind. That is the whole reason it said nothing.';
       } else if (won) {
-        // When the value was COMPUTED, the engine still credits whichever route
-        // carried it into the answer — so the headline says "it worked the sum
-        // out" while this line names a route about covering your sentence, and
-        // the two read as the panel contradicting itself. Both are true; say
-        // how they fit together rather than leaving the reader to guess.
+        // A computed answer has two different stories here. When some OTHER
+        // route carried the value into the answer, the headline ("it worked
+        // the sum out") and this line (a route about covering your sentence)
+        // read as the panel contradicting itself, so say how they fit. When
+        // the arithmetic IS the winning route, the same split says one fact
+        // twice — "the value came from the arithmetic, and of the ways of
+        // carrying it, it took the arithmetic".
         var computed = x.chain.links.some(function (l) {
-          return l.move === 'evalComputation';
+          return l.move === 'alu';
         });
-        sum.innerHTML = (computed
+        sum.innerHTML = (computed && won.name !== 'alu'
           ? 'The value itself came from the arithmetic above. Of the <b>' +
             w.routes.length + '</b> ways it weighed for carrying that value into an ' +
             'answer, it took <b>' + won.label + '</b>'
+          : computed
+          ? 'It weighed <b>' + w.routes.length +
+            '</b> different ways of reaching an answer, and the arithmetic above ' +
+            'is the one that reached it'
           : 'It weighed <b>' + w.routes.length +
             '</b> different ways of reaching an answer and took this one: <b>' +
             won.label + '</b>') +

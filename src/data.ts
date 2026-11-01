@@ -5,11 +5,13 @@
 // of truth, and what we fetched is recorded in a local manifest so a later
 // startup can tell "complete and current" from "stale" or "half-downloaded".
 //
-// The store itself is three sibling files that SQliteStore derives from a
-// single STEM path (see store-sqlite.ts): `<stem>.sqlite` holds the
-// content-addressed DAG, `<stem>.content.vec` the node gists, and
-// `<stem>.halo.vec` the distributional halo index.  The stem is discovered
-// from whichever `.sqlite` file the bucket publishes.
+// The store itself is four sibling files that SQliteStore derives from a
+// single STEM path (see store-sqlite.ts): `<stem>.sqlite` holds the BASE — the
+// nodes, edges, wholes and halos only ingestion can write — `<stem>.
+// derived.sqlite` everything that is a function of that base, `<stem>.
+// content.vec` the node gists, and `<stem>.halo.vec` the distributional halo
+// index.  The stem is discovered from whichever `.sqlite` file the bucket
+// publishes, the base one.
 
 /** The bucket publishing the pre-trained memory. */
 const REPO = "hviana/sema-trained-v1";
@@ -34,6 +36,9 @@ interface ManifestEntry {
   /** False while a download is still in flight, so a partial file is never
    *  mistaken for a finished one. */
   complete: boolean;
+  /** The engine rewrote this file after it was fetched, so its size is its
+   *  own and no longer the bucket's — see `DataBootstrap.restamp`. */
+  derived?: boolean;
 }
 
 type Manifest = Record<string, ManifestEntry>;
@@ -51,6 +56,15 @@ export interface FileProgress {
 }
 
 export type Phase = "checking" | "downloading" | "opening" | "ready" | "error";
+
+/** What runs between "every file is here" and "ready".  `say` publishes a line
+ *  of the opening phase, because opening is not always instant: a memory whose
+ *  derived layer has to be rebuilt first takes minutes, and a progress bar that
+ *  says nothing for minutes reads as a hang. */
+export type OpenStore = (
+  stem: string,
+  say: (message: string) => void,
+) => Promise<void>;
 
 export interface BootstrapStatus {
   phase: Phase;
@@ -121,8 +135,13 @@ async function listRemote(): Promise<RemoteFile[]> {
  *  `<stem>.derived.sqlite` holds everything re-derivable from them — so a
  *  bucket publishing both offers two names ending in `.sqlite`, and taking the
  *  wrong one yields the stem `sema.derived`, whose every sibling file is
- *  missing.  (A store trained before the layers were separated publishes the
- *  one file and opens exactly as it did.) */
+ *  missing.
+ *
+ *  A memory trained before the split publishes the one file, and from Sema
+ *  1.0.7 the engine no longer reads a derived table out of it: it opens the
+ *  base, finds no derived layer beside it and reports the gap through
+ *  `derivedLag()`.  Closing that gap is `mind.ts`'s job, before the first
+ *  question — see `SemaService.catchUpDerived`. */
 const DERIVED_SUFFIX = ".derived.sqlite";
 function stemFrom(names: string[]): string {
   const dbs = names.filter((n) => n.endsWith(".sqlite"));
@@ -166,7 +185,7 @@ export class DataBootstrap {
   #listeners = new Set<(s: BootstrapStatus) => void>();
   #ready: Promise<void> | null = null;
   #manifest: Manifest = {};
-  #andOpen: ((stem: string) => Promise<void>) | undefined;
+  #andOpen: OpenStore | undefined;
 
   /** The stem to hand SQliteStore, known once checking has run. */
   stem = "";
@@ -197,9 +216,39 @@ export class DataBootstrap {
    *  `andOpen` receives the store stem and runs once every file is validated
    *  but BEFORE the status flips to `"ready"`, so a client that unlocks on
    *  `"ready"` can never query a store that is still opening. */
-  ensure(andOpen?: (stem: string) => Promise<void>): Promise<void> {
+  ensure(andOpen?: OpenStore): Promise<void> {
     this.#andOpen = andOpen ?? this.#andOpen;
     return this.#ready ??= this.#run(this.#andOpen);
+  }
+
+  /** Record that the engine rebuilt what it derives, so those files stop
+   *  being measured against the bucket.
+   *
+   *  Rebuilding the derived layer REWRITES everything beside the base:
+   *  `<stem>.derived.sqlite`, `<stem>.content.vec` and `<stem>.halo.vec` are
+   *  worked out from the notes rather than being notes, so they are the
+   *  engine's to replace, and once replaced their bytes are no longer the
+   *  bytes the bucket published.  The size test exists to catch a half-written
+   *  download; left alone it would read a legitimately rebuilt index as a
+   *  truncated one, fetch it again, rebuild it again, and find it wrong again
+   *  on the next start, for ever.
+   *
+   *  It marks by ROLE, not by measurement: the base is the one file the stem
+   *  names, everything else is derived.  Measuring would be wrong anyway —
+   *  SQLite holds a freshly written index in its write-ahead log until the
+   *  database is closed, so the sizes are not final while the store is open,
+   *  which is exactly when this runs. */
+  async markRebuilt(): Promise<void> {
+    // The same separator set `dataDir()` splits on: a Windows binary keeps its
+    // data beside itself, and that path comes back with backslashes.
+    const base = `${this.stem.split(/[\\/]/).pop()}.sqlite`;
+    let changed = false;
+    for (const [name, known] of Object.entries(this.#manifest)) {
+      if (name === base || known.derived) continue;
+      this.#manifest[name] = { ...known, derived: true };
+      changed = true;
+    }
+    if (changed) await writeManifest(this.#manifest);
   }
 
   /** Try again after a failure — the browser offers this rather than making
@@ -218,7 +267,7 @@ export class DataBootstrap {
     return this.ensure();
   }
 
-  async #run(andOpen?: (stem: string) => Promise<void>): Promise<void> {
+  async #run(andOpen?: OpenStore): Promise<void> {
     try {
       await Deno.mkdir(dataDir(), { recursive: true });
       this.#emit({
@@ -251,7 +300,9 @@ export class DataBootstrap {
         etaSeconds: null,
         message: "Opening the trained memory — this takes a moment…",
       });
-      await andOpen?.(this.stem);
+      await andOpen?.(this.stem, (message) => {
+        this.#emit({ phase: "opening", message });
+      });
 
       this.#emit({ phase: "ready", message: "Sema is ready." });
     } catch (err) {
@@ -286,6 +337,10 @@ export class DataBootstrap {
     for (const r of remote) {
       const onDisk = await sizeOf(`${dataDir()}/${r.name}`);
       const known = this.#manifest[r.name];
+      // A file the ENGINE rewrote for itself (see `restamp`) no longer has the
+      // size the bucket published, and that is not a truncated download.  It
+      // is still the bucket's file by hash, which is what a republish moves.
+      const rebuilt = known?.derived === true && known.hash === r.hash;
 
       let reason: FileProgress["reason"];
       let have = onDisk;
@@ -304,26 +359,30 @@ export class DataBootstrap {
           reason = "unverified";
           have = 0;
         }
-      } else if (!known.complete || onDisk !== r.size) {
+      } else if (!known.complete || (onDisk !== r.size && !rebuilt)) {
         reason = "incomplete";
         have = Math.min(onDisk, r.size);
       }
 
+      const done = reason === undefined &&
+        (rebuilt ? have > 0 : have === r.size);
       files.push({
         name: r.name,
         have,
-        total: r.size,
-        done: reason === undefined && have === r.size,
+        // A rebuilt index is its own measure: showing it against the published
+        // size would report more than 100% of a finished download.
+        total: rebuilt ? have : r.size,
+        done,
         reason,
       });
 
       // Record the target identity up front, so an interrupted download
       // resumes against the version it started on.
-      this.#manifest[r.name] = {
-        size: r.size,
-        hash: r.hash,
-        complete: reason === undefined && have === r.size,
-      };
+      // The published size is kept even for a rebuilt file: it is the size
+      // this copy would be fetched at again, and nothing reads it meanwhile.
+      this.#manifest[r.name] = rebuilt
+        ? { size: r.size, hash: r.hash, complete: done, derived: true }
+        : { size: r.size, hash: r.hash, complete: done };
     }
     await writeManifest(this.#manifest);
     return files;
@@ -354,11 +413,14 @@ export class DataBootstrap {
     for (const name of names) {
       const known = this.#manifest[name];
       const onDisk = await sizeOf(`${dataDir()}/${name}`);
-      const ok = known.complete && onDisk === known.size;
+      // A file the engine rebuilt for itself has its own size (see
+      // `markRebuilt`): present is the whole test it can be held to.
+      const ok = known.complete &&
+        (known.derived ? onDisk > 0 : onDisk === known.size);
       files.push({
         name,
         have: onDisk,
-        total: known.size,
+        total: known.derived ? onDisk : known.size,
         done: skipping || ok,
         reason: ok ? undefined : "incomplete",
       });
