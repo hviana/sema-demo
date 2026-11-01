@@ -145,11 +145,18 @@ derived layer rewrites everything beside the base — `.derived.sqlite`,
 notes — so their bytes stop being the bytes the bucket published. The size test
 exists to catch a half-written download, and left alone it would read a
 legitimately rebuilt index as a truncated one: fetch it again, rebuild it again,
-find it wrong again on the next start, for ever. The manifest marks those files
-by **role** (the base is the one file the stem names; everything else is
-derived), never by measuring — SQLite keeps a freshly written index in its
-write-ahead log until the database closes, so the sizes are not final at the
-moment this runs.
+find it wrong again on the next start, for ever. The manifest marks those three
+files **by name**, never by measuring — SQLite keeps a freshly written index in
+its write-ahead log until the database closes, so the sizes are not final at the
+moment this runs — and it marks them **before** the rebuild starts: a rebuild
+cut short (minutes, on a large memory) leaves the indexes already rewritten, and
+marked first they are rebuilt again on the next start instead of being read as a
+truncated download and "resumed" with bytes fetched on top. Killed halfway and
+restarted, it does exactly that.
+
+A session on a memory that is already current writes nothing: opened,
+questioned, browsed, searched and closed, all four files come back byte for byte
+as they were.
 
 If the bucket is unreachable, a fully-validated local copy still starts offline;
 an incomplete one fails loudly rather than opening a truncated store.
@@ -280,16 +287,28 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   **Each mechanism gets its own silhouette**, because they are not the same
   thing happening:
 
-  | the engine did                 | the picture does                                                                                                                                  |
-  | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | followed a learnt connection   | box → arrow → box, the arrow carrying the move and its cost                                                                                       |
-  | derived through a second fact  | the same, one box per hop                                                                                                                         |
-  | completed a phrase it had seen | both strings on one left edge, the shared opening **solid** and the rest of the note **faded** — you see your text _being_ the start of that note |
-  | answered from agreement        | one drawn line per stored note, each starting at its own row and all meeting the single point the next arrow leaves from                          |
-  | worked out a sum               | an `=` and a value, no arrow and no box — a shape that cannot be mistaken for a walk between two notes, because it is not one                     |
-  | said nothing                   | no chain at all, and the near misses shown against your own words with the stretch they share **solid**                                           |
+  | the engine did                 | the picture does                                                                                                                                          |
+  | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | followed a learnt connection   | box → arrow → box, the arrow carrying the move and its cost                                                                                               |
+  | derived through a second fact  | the same, one box per hop                                                                                                                                 |
+  | completed a phrase it had seen | both strings on one left edge, the shared opening **solid** and the rest of the note **faded** — you see your text _being_ the start of that note         |
+  | answered from agreement        | one drawn line per stored note, each starting at its own row and all meeting the single point the next arrow leaves from                                  |
+  | voted by precedent             | the same funnel, over the stored notes most like your question that carry the answer — titled "_9 of 11_" when some carried another one and lost the vote |
+  | lent one note's answer         | a single stored note, the one most like yours, and the answer it carries — a resemblance, which the engine files as a suggestion and the panel says so    |
+  | worked out a sum               | an `=` and a value, no arrow and no box — a shape that cannot be mistaken for a walk between two notes, because it is not one                             |
+  | said nothing                   | no chain at all, and the near misses shown against your own words with the stretch they share **solid**                                                   |
 
-  Blur the text out and those six are still distinguishable. That is the point.
+  Blur the text out and those eight are still distinguishable. That is the
+  point.
+
+  The precedent shapes are drawn from the notes the engine itself names as the
+  voters (`bindPrecedent`), and only when that step could have produced this
+  answer on this route: two votes or more say `reference`, one says `recall`,
+  and a precedent that ran on a losing route stays in the trace and out of the
+  chain. Under a suggestion, the count of _other ways of asking that reach this
+  answer_ changes what it claims: on a derived answer it shows the answer does
+  not rest on one note; on a suggestion none of those notes took part, so it
+  says only that the answer exists in memory, without the reassuring tick.
 
   **2 · What it weighed.** One line: how many ways of answering it had, which
   one it took, and what that cost. The engine's full cost ladder — read from its
@@ -303,7 +322,9 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   the winning route with the longest bar directly under a heading saying the
   cheapest wins. A cost, never a confidence — and when only one route reached an
   answer at all, the panel says no contest was recorded, because an uncontested
-  win is not a wide one.
+  win is not a wide one. A **close call** is flagged only when the runner-up
+  answered something _else_: one that reached the same answer by another route,
+  at almost the same cost, corroborates the answer rather than threatening it.
 
   **Below that, on demand:** what it recognised in your text (the counts, and a
   chip per piece that lights that exact range when you point at it — tap, on a
@@ -315,8 +336,12 @@ yourself — point `SEMA_DATA_DIR` at it and the bootstrap is bypassed entirely.
   once with its count, and the panel says when it is.
 
   Every step gets a plain sentence saying what it contributed, whether it
-  succeeded or gave up. Sema's exact note and the spans each step consumed are
-  the auditable record and are always in the page, but they sit behind one
+  succeeded or gave up. A route that found a candidate and **refused** it — the
+  closest note being another case of the same kind, a precedent nothing
+  licenses, an answer to a question you did not ask — is never told as "produced
+  nothing": its sentence is the reason the engine noted, which on a silent turn
+  is the whole explanation. Sema's exact note and the spans each step consumed
+  are the auditable record and are always in the page, but they sit behind one
   **"Show Sema's own notes"** switch — printed inline they put a cost float on
   every row, and the sentence above already says what happened. Turn it on and
   `pool independent regions' evidence for a shared anchor (sum, not shortest

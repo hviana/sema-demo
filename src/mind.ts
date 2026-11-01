@@ -62,9 +62,13 @@ export class SemaService {
    *
    *  Asking and rebuilding are two calls because the caller has to be able to
    *  say what it is about to do BEFORE it takes the minutes to do it. */
-  needsDerived(): boolean {
+  async needsDerived(): Promise<boolean> {
     const mind = this.#mind;
     if (!mind) throw new Error("The trained memory is not open yet.");
+    // The store opens asynchronously and sets its lag while opening. The
+    // engine happens to do that part before its first await today; reading
+    // the lag only after the store says it is ready does not lean on that.
+    await mind.store.size();
     // Null is current.  0 is a layer that was never written — and 0 is falsy,
     // so this is a comparison and not a truthiness test.
     return mind.store.derivedLag() !== null;

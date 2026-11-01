@@ -221,8 +221,16 @@ export class DataBootstrap {
     return this.#ready ??= this.#run(this.#andOpen);
   }
 
-  /** Record that the engine rebuilt what it derives, so those files stop
-   *  being measured against the bucket.
+  /** Record that the engine is about to rebuild what it derives, so those
+   *  files stop being measured against the bucket.
+   *
+   *  It runs BEFORE the rebuild, not after. The rebuild is minutes on a large
+   *  memory, and a process stopped halfway leaves the indexes already
+   *  rewritten: marked first, the next start holds them to the hash, opens the
+   *  store, finds the layer still behind (the engine stamps it current only at
+   *  the end) and rebuilds again. Marked after, the next start would read a
+   *  half-rewritten index as a truncated download and try to resume a fetch
+   *  on top of it.
    *
    *  Rebuilding the derived layer REWRITES everything beside the base:
    *  `<stem>.derived.sqlite`, `<stem>.content.vec` and `<stem>.halo.vec` are
@@ -233,18 +241,21 @@ export class DataBootstrap {
    *  truncated one, fetch it again, rebuild it again, and find it wrong again
    *  on the next start, for ever.
    *
-   *  It marks by ROLE, not by measurement: the base is the one file the stem
-   *  names, everything else is derived.  Measuring would be wrong anyway —
-   *  SQLite holds a freshly written index in its write-ahead log until the
-   *  database is closed, so the sizes are not final while the store is open,
-   *  which is exactly when this runs. */
+   *  It marks by NAME, the three files the engine writes when it rebuilds,
+   *  and never by measurement: SQLite holds a freshly written index in its
+   *  write-ahead log until the database closes, so sizes are not final while
+   *  the store is open. Nothing else the bucket publishes is touched — a file
+   *  the engine does not write keeps its strict size check. */
   async markRebuilt(): Promise<void> {
     // The same separator set `dataDir()` splits on: a Windows binary keeps its
     // data beside itself, and that path comes back with backslashes.
-    const base = `${this.stem.split(/[\\/]/).pop()}.sqlite`;
+    const stem = this.stem.split(/[\\/]/).pop();
+    const rewritten = new Set(
+      [".derived.sqlite", ".content.vec", ".halo.vec"].map((x) => stem + x),
+    );
     let changed = false;
     for (const [name, known] of Object.entries(this.#manifest)) {
-      if (name === base || known.derived) continue;
+      if (!rewritten.has(name) || known.derived) continue;
       this.#manifest[name] = { ...known, derived: true };
       changed = true;
     }

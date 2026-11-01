@@ -366,7 +366,18 @@ function num(note: string, re: RegExp): number | null {
 /** Plain readings of a step that DID something. The engine's note is written for
  *  whoever is debugging a cost ladder; this is the same fact for someone who has
  *  never heard of one. The note itself is kept alongside, never replaced. */
-const DID: Record<string, (note: string, answered: boolean) => string> = {
+/** Whether a `narrowDecision`'s runner-up (its output) reached the very answer
+ *  the winner (its input) did. Then the contest corroborates the answer: two
+ *  routes, almost the same cost, one answer — nothing one more note could flip. */
+function rivalAgrees(s: RationaleStep | undefined): boolean {
+  const won = s?.inputs[0]?.text.trim();
+  return !!won && won === s?.outputs[0]?.text.trim();
+}
+
+const DID: Record<
+  string,
+  (note: string, answered: boolean, step: RationaleStep) => string
+> = {
   recognise: (n) => {
     const forms = num(n, /into (\d+) learnt form/);
     const seen = num(n, /over (\d+) perceived leaves/);
@@ -521,10 +532,14 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
   },
   decideGrounding: () =>
     "Every route to an answer was scored on one and the same scale, and the one that took the fewest leaps won.",
-  narrowDecision: (n) =>
-    num(n, /margin (\d+)/) === 0
-      ? "The winner beat its rival by nothing at all — one more trained note could flip this answer."
-      : "The winning route beat its rivals by a clear margin.",
+  // The engine emits this step ONLY when the margin is 1 grade unit or less,
+  // so there is no "clear margin" to report here: margin 1 is its own flag.
+  narrowDecision: (n, _answered, s) =>
+    rivalAgrees(s)
+      ? "The runner-up reached this same answer by another route, at almost the same cost. Here the contest corroborates the answer rather than threatening it."
+      : num(n, /margin (\d+)/) === 0
+      ? "The winner beat a rival that answered something else by nothing at all — one more trained note could flip this answer."
+      : "A rival that answered something else lost by a single step on the cost ladder — one more trained note could flip this answer.",
   articulate: (n, answered) =>
     !answered
       ? "There was no answer to reword."
@@ -539,7 +554,7 @@ const DID: Record<string, (note: string, answered: boolean) => string> = {
     answered
       ? "The finished answer, handed back to you."
       : "It had nothing it could stand behind, so it returned nothing.",
-  respondTurn: (n, answered) => DID.respond(n, answered),
+  respondTurn: (n, answered, s) => DID.respond(n, answered, s),
 };
 
 /** Plain readings of a mechanism that came up EMPTY, keyed by the mechanism
@@ -580,6 +595,50 @@ const EMPTY: Record<string, string> = {
   think:
     "Every route was tried and none reached an answer it could stand behind.",
 };
+
+/** A route that FOUND a candidate and turned it down notes it as
+ *  `refused — <why>`. "This approach produced nothing" would be false for
+ *  every one of them, and on a silent turn the why is the whole explanation.
+ *  These are all of them in the engine as installed. */
+const REFUSED: Record<string, string> = {
+  coInstanceAnchor:
+    "The closest stored note is another case of the same kind, and what follows it is about its own case, not yours — so it was not borrowed.",
+  unlicensedSwap:
+    "The closest stored note is your question with one piece swapped for another, and nothing it was taught says the two pieces mean the same.",
+  unaskedAnchor:
+    "The closest stored note answers other questions, and yours asks for none of what follows it.",
+  displacedFiller:
+    "What follows the closest stored note talks about the thing in a place your question fills with something else.",
+  unaskedPrecedent:
+    "The most similar stored notes carry an answer to a different question about the same subject, and yours asks for none of it.",
+  precedentLicence:
+    "The most similar stored notes did not hold up as precedents for your question.",
+};
+
+/** `precedentLicence` refuses for three different reasons; say the one noted. */
+const PRECEDENT_REFUSED: [RegExp, string][] = [
+  [
+    /no form covers most/,
+    "None of the most similar stored notes covered most of what sets your question apart, so none could stand as its precedent.",
+  ],
+  [
+    /no answer is carried by a majority/,
+    "There were similar stored notes, but they carried different answers and no answer had a majority.",
+  ],
+  [
+    /lone precedent/,
+    "Only one similar stored note was found, and it sits inside your question without resembling it — one is not enough.",
+  ],
+];
+
+function refusalOf(name: string, note: string): string | null {
+  if (!/^refused\b/i.test(note)) return null;
+  if (name === "precedentLicence") {
+    const why = PRECEDENT_REFUSED.find(([re]) => re.test(note));
+    if (why) return why[1];
+  }
+  return REFUSED[name] ?? null;
+}
 
 /** `skipMechanism` names the route it declined in the note's first word, so both
  *  the label and the reading come from that word. */
@@ -830,8 +889,15 @@ export interface ChainNode {
   voterTotal: number;
   /** Other stored notes that lead to this same place — a high count is the
    *  plainest possible statement of "this does not rest on one note". `capped`
-   *  says the scan stopped, so the real number is at least this. */
-  support: { total: number; capped: boolean; samples: string[] } | null;
+   *  says the scan stopped, so the real number is at least this.
+   *
+   *  `used` is false when the answer is a SUGGESTION (`recall`, `recall-echo`):
+   *  then the engine went by resemblance and none of these notes took part, so
+   *  their number says the answer exists in memory — not that it fits the
+   *  question, and not that it rests on more than one note. */
+  support:
+    | { total: number; capped: boolean; samples: string[]; used: boolean }
+    | null;
   /** This stored note repeats what you asked word for word. */
   exact: boolean;
 }
@@ -1363,7 +1429,7 @@ function buildChain(
    *  returns 154 where only 120 are notes, so the sentence overstated by a
    *  quarter while the examples under it were honest. The scan is bounded and
    *  says when it was, because "at least 400" is true and "154" was not. */
-  const supportOf = (node: number, exclude: number[]) => {
+  const supportOf = (node: number, exclude: number[], used = true) => {
     const CAP = 400;
     const prev = mind.store.prevFirst(node, CAP);
     const skip = new Set(exclude);
@@ -1378,7 +1444,7 @@ function buildChain(
       }
     }
     if (!(total > 0)) return null;
-    return { total, capped: prev.length >= CAP, samples };
+    return { total, capped: prev.length >= CAP, samples, used };
   };
 
   // The question is always the first box: the chain starts in your words.
@@ -1455,7 +1521,7 @@ function buildChain(
           label: carry ? carry[1] : mechOf(name).label.toLowerCase(),
           plain: carry
             ? carry[2]
-            : (DID[name]?.(hop.step.note ?? "", true) ?? ""),
+            : (DID[name]?.(hop.step.note ?? "", true, hop.step) ?? ""),
           cost: num(hop.step.note ?? "", /cost ([\d.]+)/),
           note: hop.step.note ?? "",
         });
@@ -1464,7 +1530,7 @@ function buildChain(
     return { nodes, links, truncated };
   }
 
-  // No edge was walked, and there are three reasons that can happen, each with
+  // No edge was walked, and there are four reasons that can happen, each with
   // a shape of its own. Drawing any of them as a note it "followed" would be a
   // fiction, so each is drawn as what it is.
 
@@ -1505,6 +1571,20 @@ function buildChain(
     "bindReferent",
     (s) => s.inputs.some((i) => real(i.node)),
   );
+  // A precedent is credited only when it could have produced THIS answer on
+  // THIS route: `bindPrecedent` says `reference` with two votes or more and
+  // `recall` with one, and a precedent that ran on a losing route is still in
+  // the trace.
+  const precedent = lastOf(steps, "bindPrecedent", (s) => {
+    if (s.outputs[0]?.text.trim() !== answer) return false;
+    const votes = (s.data as { votes?: number } | undefined)?.votes;
+    if (typeof votes !== "number") return false;
+    return provenance === "reference"
+      ? votes >= 2
+      : provenance === "recall"
+      ? votes === 1
+      : false;
+  });
   if (bound) {
     const voters: Voter[] = [];
     for (const it of bound.inputs) {
@@ -1548,6 +1628,96 @@ function buildChain(
       cost: null,
       note: bound.note ?? "",
     });
+  } else if (precedent) {
+    // PRECEDENT.  The answer of the stored notes most like the question,
+    // carried over because they hold it (`bindPrecedent`). The engine hands
+    // over exactly the notes that voted, so they are drawn — the alternative,
+    // "this route produced the answer", hid the whole of the evidence.
+    const data = precedent.data as
+      | { votes?: number; precedents?: number; dissent?: number }
+      | undefined;
+    const voted = precedent.inputs.filter((i) =>
+      i.role === "precedent" && real(i.node)
+    );
+    const votes = data?.votes ?? voted.length;
+    const of = data?.precedents ?? votes;
+    const dissent = data?.dissent ?? of - votes;
+    if (votes <= 1 && voted[0]) {
+      // ONE precedent is a resemblance, not an agreement, and the engine says
+      // it as `recall`. A funnel of one line would draw "many became one".
+      const node = voted[0].node!;
+      const text = renderNode(mind, node, 260);
+      links.push({
+        move: "bindPrecedent",
+        label: "found the stored note most like yours",
+        plain:
+          "Nothing it holds says this exact thing. The closest stored note is this one — close enough to lend its answer, not close enough to derive one.",
+        cost: null,
+        note: precedent.note ?? "",
+      });
+      nodes.push({
+        id: "precedent",
+        kind: "note",
+        title: "The stored note most like yours",
+        text,
+        node,
+        spans: spansOf(node),
+        voters: [],
+        voterTotal: 0,
+        support: null,
+        exact: norm(text) === norm(question),
+      });
+      links.push({
+        move: "bindPrecedent",
+        label: "and took the answer it carries",
+        plain:
+          "With only one similar note there is nothing to agree or disagree with, so this is a suggestion by resemblance — the engine files it as recall, not as a derived fact.",
+        cost: null,
+        note: precedent.note ?? "",
+      });
+    } else {
+      const voters: Voter[] = voted.slice(0, 6).map((i) => ({
+        text: renderNode(mind, i.node!, 140),
+        node: i.node!,
+        score: typeof i.score === "number" ? i.score : null,
+      })).filter((v) => v.text);
+      links.push({
+        move: "bindPrecedent",
+        label: "found stored notes like yours",
+        plain:
+          "Nothing it holds says this exact thing. So it gathered the stored notes most like your question and let each one vote with the answer it carries.",
+        cost: null,
+        note: precedent.note ?? "",
+      });
+      nodes.push({
+        id: "precedents",
+        kind: "agreement",
+        title: dissent > 0
+          ? `${votes} of ${of} similar stored notes carry this answer`
+          : `${votes} similar stored notes, all carrying this answer`,
+        text: "",
+        node: null,
+        spans: [],
+        voters,
+        voterTotal: votes,
+        support: null,
+        exact: false,
+      });
+      links.push({
+        move: "bindPrecedent",
+        label: dissent > 0
+          ? "and most of them carry this answer"
+          : "and they all carry this answer",
+        plain: (dissent > 0
+          ? `${
+            plural(dissent, "other similar note")
+          } carried a different answer and lost the vote. `
+          : "") +
+          "It takes two that agree before precedent counts as a deduction; with one, the engine only suggests.",
+        cost: null,
+        note: precedent.note ?? "",
+      });
+    }
   } else {
     const echo = lastOf(
       steps,
@@ -1586,9 +1756,11 @@ function buildChain(
     support: answerNode !== null
       ? supportOf(
         answerNode,
-        nodes.flatMap((n) =>
-          n.voters.map((v) => v.node).filter((v): v is number => v !== null)
-        ),
+        nodes.flatMap((n) => [
+          ...n.voters.map((v) => v.node),
+          ...(n.kind === "note" ? [n.node] : []),
+        ]).filter((v): v is number => v !== null),
+        provenance !== "recall" && provenance !== "recall-echo",
       )
       : null,
     exact: false,
@@ -1837,7 +2009,9 @@ function readWeighing(
     incumbent,
     routes,
     rules,
-    closeCall: narrow
+    // A runner-up that reached the same answer is not a threat to it, and the
+    // panel's flag says "one more note could tip this the other way".
+    closeCall: narrow && !rivalAgrees(narrow)
       ? (narrowMargin === null
         ? "the engine flagged the call as narrow"
         : `a margin of ${plural(narrowMargin, "grade unit")}`)
@@ -1871,7 +2045,8 @@ function readRejected(steps: RationaleStep[]): Rejected[] {
       plain = SKIPPED[which]?.plain ??
         "It checked whether this approach could apply here, and it could not.";
     } else {
-      plain = EMPTY[name] ?? "This approach produced nothing here.";
+      plain = refusalOf(name, note) ?? EMPTY[name] ??
+        "This approach produced nothing here.";
     }
     const key = name + "|" + plain;
     if (!out.has(key)) out.set(key, { mechanism: name, label, plain, note });
@@ -1894,8 +2069,8 @@ function readTrace(
     const inText = firstText(s.inputs);
     const outText = firstText(s.outputs);
     const plain = abstained(name, note) && !ALWAYS_RAN.has(name)
-      ? (EMPTY[name] ?? null)
-      : (DID[name]?.(note, answered) ?? null);
+      ? (refusalOf(name, note) ?? EMPTY[name] ?? null)
+      : (DID[name]?.(note, answered, s) ?? null);
 
     // A run of identical consecutive siblings is one thing that happened many
     // times, not many things. Folding it keeps the run VISIBLE as a run — the
@@ -1952,6 +2127,13 @@ function headlineOf(
   }
   if (outcome === "echo") {
     return "It returned the closest stored wording it has, rather than deriving an answer.";
+  }
+  if (chain.nodes.some((n) => n.id === "precedent")) {
+    return "It lent you the answer of the one stored note most like your question — a resemblance, not a derivation.";
+  }
+  const voted = chain.nodes.find((n) => n.id === "precedents");
+  if (voted) {
+    return `It answered from precedent: ${voted.voterTotal} of the stored notes most like your question carry this answer.`;
   }
   const carried = chain.links.filter((l) => CARRY_NAMES.has(l.move));
   if (carried.length > 1) {

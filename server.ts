@@ -286,15 +286,16 @@ boot.ensure(async (stem, say) => {
   const rebuilding =
     "This memory was built by an earlier engine. Rebuilding what it works " +
     "out from its notes — once, then never again…";
-  if (sema.needsDerived()) {
+  if (await sema.needsDerived()) {
     say(rebuilding);
     console.log(`  ${label("Derived layer")}missing — rebuilding it once`);
     const t0 = performance.now();
-    await sema.catchUpDerived();
-    // The rebuild rewrote everything beside the base, so what is on disk is
-    // no longer what the bucket published: record that, or the next start
-    // reads those files as half-downloaded and fetches them all over again.
+    // The rebuild rewrites everything beside the base, so what will be on disk
+    // is no longer what the bucket published. Recorded FIRST, so a rebuild
+    // cut short is resumed by rebuilding again — never read as a truncated
+    // download and "resumed" by fetching bytes onto a rewritten index.
     await boot.markRebuilt();
+    await sema.catchUpDerived();
     console.log(
       `  ${label("Derived layer")}rebuilt in ${
         Math.round((performance.now() - t0) / 1000)

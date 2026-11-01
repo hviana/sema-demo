@@ -2241,12 +2241,22 @@ export const HTML = `<!doctype html>
         }
         if (n.support) {
           var sup = el('div', 'support');
-          sup.innerHTML = svg('<circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5L16 9.5"/>', 15);
+          // A tick is reassurance; on a suggestion there is nothing to tick.
+          sup.innerHTML = svg(n.support.used
+            ? '<circle cx="12" cy="12" r="9"/><path d="M8.5 12l2.5 2.5L16 9.5"/>'
+            : '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>', 15);
           var st = el('div');
           st.appendChild(el('b', null,
             (n.support.capped ? 'at least ' : '') + group(n.support.total) + ' other ways '));
-          st.appendChild(document.createTextNode(
-            'of asking also reach this same answer, so it does not rest on one note.'));
+          // On a suggestion the engine went by resemblance and none of these
+          // notes took part: they show the answer exists in memory, not that it
+          // fits your question. Saying "it does not rest on one note" under a
+          // headline that says it rests on one would be the panel contradicting
+          // itself, and the reassuring half would be the false one.
+          st.appendChild(document.createTextNode(n.support.used
+            ? 'of asking also reach this same answer, so it does not rest on one note.'
+            : 'of asking also lead to this answer in memory. The engine did not use them: ' +
+              'they show the answer exists, not that it fits what you asked.'));
           if (n.support.samples.length) {
             var more = el('button', 'linkbtn', 'Show a few');
             var list = null;
