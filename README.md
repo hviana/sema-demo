@@ -45,12 +45,12 @@ at all: the banner is invisible there, so without this the app looks like it did
 nothing. Windows allocates a console for the compiled `.exe` and macOS opens the
 binary in Terminal, so on those two the banner is visible either way.
 
-The dependency is **pinned** (`npm:@hviana/sema@1.0.7`) and the lockfile is
+The dependency is **pinned** (`npm:@hviana/sema@1.0.8`) and the lockfile is
 disabled: which engine this app runs is written down where it can be read. Every
 `compile:*` task re-resolves it too, so a binary you ship is never built against
 a stale cached copy.
 
-### What moved between 1.0.3 and 1.0.7
+### What moved between 1.0.3 and 1.0.8
 
 The parts this app reads are the conversation API, the `Store` probes, the
 corpus search, and the rationale — and only the last of those moved. The step
@@ -75,6 +75,15 @@ behind it (a `whole_kid` range read in place of a parent climb) is training work
 this app never does. What it did move is the **store**: the fallback that opened
 a pre-layer store as one file is gone, so such a store now opens as a base with
 no derived layer beside it. See [How it is validated](#how-it-is-validated).
+
+**1.0.8** is a reasoning change on the engine's side, and nothing in this app
+moves with it. Where a relation is read off several instances that spell it in
+different ways, the engine now goes by the answer each one gives, and lets the
+others contest that reading. The 74 step names, every payload and every note the
+panel parses are the same as in 1.0.7. One note, `relationFrames`, can now carry
+a longer ending; the panel shows it only as Sema's own words, and never parses
+it. The store format did not change either, so a 1.0.7 memory opens as it is,
+with its derived layer current, and nothing is rebuilt.
 
 ## Build binaries
 
